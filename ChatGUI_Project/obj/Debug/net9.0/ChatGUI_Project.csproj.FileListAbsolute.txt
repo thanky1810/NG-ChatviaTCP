@@ -1,0 +1,14 @@
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\bin\Debug\net9.0\ChatGUI_Project.exe
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\bin\Debug\net9.0\ChatGUI_Project.deps.json
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\bin\Debug\net9.0\ChatGUI_Project.runtimeconfig.json
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\bin\Debug\net9.0\ChatGUI_Project.dll
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\bin\Debug\net9.0\ChatGUI_Project.pdb
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.GeneratedMSBuildEditorConfig.editorconfig
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.AssemblyInfoInputs.cache
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.AssemblyInfo.cs
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.csproj.CoreCompileInputs.cache
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.dll
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\refint\ChatGUI_Project.dll
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.pdb
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ChatGUI_Project.genruntimeconfig.cache
+D:\UTH\IT\LTM\Project_ChatGUI\NG-ChatviaTCP\ChatGUI_Project\obj\Debug\net9.0\ref\ChatGUI_Project.dll
