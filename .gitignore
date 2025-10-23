@@ -1,0 +1,33 @@
+# === Visual Studio 2022 & .NET (C#) ===
+
+# Thư mục cache và cài đặt riêng của Visual Studio
+# Đây là thư mục quan trọng nhất cần ignore
+.vs/
+
+# Thư mục build (chứa file .exe, .dll)
+**/[Bb]in/
+
+# Thư mục build trung gian (object files)
+**/[Oo]bj/
+
+# Cài đặt riêng của từng user (ví dụ: cửa sổ nào đang mở, project nào là startup)
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Kết quả test
+TestResults/
+*.trx
+
+# Thư mục packages (kiểu cũ của NuGet)
+**/packages/
+*.nupkg
+
+# File rác hệ điều hành
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+# macOS
+.DS_Store
