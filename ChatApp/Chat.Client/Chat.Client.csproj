@@ -8,4 +8,8 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Chat.Server\Chat.Server.csproj" />
+  </ItemGroup>
+
 </Project>
