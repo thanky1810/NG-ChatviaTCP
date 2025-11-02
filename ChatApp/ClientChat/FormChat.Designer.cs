@@ -41,10 +41,10 @@
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.lbNameRoom = new System.Windows.Forms.Label();
             this.btnLeave = new System.Windows.Forms.Button();
-            this.pnlMessList = new System.Windows.Forms.Panel();
             this.btnSend = new System.Windows.Forms.Button();
             this.txtMessInput = new System.Windows.Forms.TextBox();
             this.btnLogOut = new System.Windows.Forms.Button();
+            this.rtbMessList = new System.Windows.Forms.RichTextBox();
             this.pnlSidebar.SuspendLayout();
             this.tcontlSidebar_.SuspendLayout();
             this.tpageUser.SuspendLayout();
@@ -142,18 +142,22 @@
             // 
             // lboxRooms
             // 
+            this.lboxRooms.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lboxRooms.FormattingEnabled = true;
-            this.lboxRooms.ItemHeight = 23;
+            this.lboxRooms.HorizontalScrollbar = true;
+            this.lboxRooms.IntegralHeight = false;
+            this.lboxRooms.ItemHeight = 25;
             this.lboxRooms.Location = new System.Drawing.Point(3, 3);
             this.lboxRooms.Name = "lboxRooms";
             this.lboxRooms.Size = new System.Drawing.Size(201, 326);
             this.lboxRooms.TabIndex = 0;
+            this.lboxRooms.SelectedIndexChanged += new System.EventHandler(this.lboxRooms_SelectedIndexChanged);
             // 
             // pnlFame
             // 
             this.pnlFame.BackColor = System.Drawing.SystemColors.GradientInactiveCaption;
+            this.pnlFame.Controls.Add(this.rtbMessList);
             this.pnlFame.Controls.Add(this.pnlHeader);
-            this.pnlFame.Controls.Add(this.pnlMessList);
             this.pnlFame.Controls.Add(this.btnSend);
             this.pnlFame.Controls.Add(this.txtMessInput);
             this.pnlFame.Location = new System.Drawing.Point(247, 21);
@@ -196,16 +200,6 @@
             this.btnLeave.UseVisualStyleBackColor = false;
             this.btnLeave.Click += new System.EventHandler(this.btnLeave_Click);
             // 
-            // pnlMessList
-            // 
-            this.pnlMessList.AutoScroll = true;
-            this.pnlMessList.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.pnlMessList.Location = new System.Drawing.Point(20, 72);
-            this.pnlMessList.Name = "pnlMessList";
-            this.pnlMessList.Size = new System.Drawing.Size(700, 332);
-            this.pnlMessList.TabIndex = 2;
-            this.pnlMessList.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlMessageList_Paint);
-            // 
             // btnSend
             // 
             this.btnSend.BackColor = System.Drawing.SystemColors.ActiveCaption;
@@ -221,6 +215,7 @@
             // 
             // txtMessInput
             // 
+            this.txtMessInput.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtMessInput.Location = new System.Drawing.Point(20, 424);
             this.txtMessInput.Multiline = true;
             this.txtMessInput.Name = "txtMessInput";
@@ -239,6 +234,20 @@
             this.btnLogOut.Text = "LogOut";
             this.btnLogOut.UseVisualStyleBackColor = true;
             this.btnLogOut.Click += new System.EventHandler(this.btnLogOut_Click);
+            // 
+            // rtbMessList
+            // 
+            this.rtbMessList.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.rtbMessList.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.rtbMessList.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rtbMessList.Location = new System.Drawing.Point(20, 63);
+            this.rtbMessList.Name = "rtbMessList";
+            this.rtbMessList.ReadOnly = true;
+            this.rtbMessList.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
+            this.rtbMessList.Size = new System.Drawing.Size(700, 344);
+            this.rtbMessList.TabIndex = 4;
+            this.rtbMessList.Text = "";
+            this.rtbMessList.TextChanged += new System.EventHandler(this.rtbMessList_TextChanged);
             // 
             // Chat_TCP_Client
             // 
@@ -283,7 +292,7 @@
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Button btnCreate;
         private System.Windows.Forms.Button btnJoin;
-        private System.Windows.Forms.Panel pnlMessList;
+        private System.Windows.Forms.RichTextBox rtbMessList;
     }
 }
 
