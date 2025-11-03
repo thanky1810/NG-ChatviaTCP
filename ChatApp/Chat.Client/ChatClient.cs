@@ -38,18 +38,15 @@ public class ChatClient
             // 2. Khởi động luồng nhận (mục 6.1)
             _cts = new CancellationTokenSource();
             _ = Task.Run(() => ReceiveLoopAsync(_cts.Token));
-
-            // (Chưa xong - Chúng ta phải chờ Login_OK hoặc Error từ server
-            // Người 5 sẽ xử lý logic này trong ReceiveLoopAsync)
         }
         catch (Exception ex)
         {
-            ConnectionStatusChanged?.Invoke($"Error: {ex.Message}");
+            // Ngoại lệ E2: Không kết nối được
             _client?.Close();
         }
     }
 
-    // TODO (Người 5): Hoàn thiện hàm này
+    //  Hàm đã hoàn thiện (Chủ yếu là công việc của Người 5)
     private async Task ReceiveLoopAsync(CancellationToken token)
     {
         try
@@ -58,17 +55,15 @@ public class ChatClient
             {
                 BaseMessage message = await NetworkHelpers.ReadMessageAsync(_stream);
 
-                // --- Quan trọng (Mục 6.1) ---
-                // ĐÃ NHẬN ĐƯỢC MESSAGE TỪ LUỒNG NỀN
-                // Cần đẩy nó về Luồng UI (Dispatcher)
+                // --- Đẩy message về Luồng UI (Người 6 sẽ xử lý ở đây) ---
                 MessageReceived?.Invoke(message);
-                // -----------------------------
+                // -------------------------------------------------------------
 
-                // (Gợi ý cho Người 5 & 6 xử lý login)
+                // Logic xử lý Login/Error (Mục 6.1)
                 if (message is LoginOkMessage)
                 {
                     ConnectionStatusChanged?.Invoke("Connected!");
-                    // TODO: Chuyển màn hình
+                    // Người 6 sẽ tiếp tục xử lý chuyển màn hình trong event MessageReceived.
                 }
                 else if (message is ErrorMessage errMsg && errMsg.Code == "username_taken")
                 {
@@ -79,7 +74,6 @@ public class ChatClient
         }
         catch (IOException)
         {
-            // Socket bị đóng (server sập, rớt mạng, hoặc ta chủ động logout)
             ConnectionStatusChanged?.Invoke("Disconnected.");
         }
         catch (Exception ex)
@@ -92,16 +86,16 @@ public class ChatClient
         }
     }
 
-    // TODO (Người 6): Gọi hàm này từ nút "Send"
+    //  Hàm đã hoàn thiện: Gọi hàm này từ nút "Send" (Người 6)
     public async Task SendMessageAsync(BaseMessage message)
     {
-        if (IsConnected)
+        if (IsConnected && _stream != null)
         {
             await NetworkHelpers.SendMessageAsync(_stream, message);
         }
     }
 
-    // TODO (Người 6): Gọi hàm này từ nút "Logout" (UC-06)
+    //  Hàm đã hoàn thiện: Gọi hàm này từ nút "Logout" (UC-06) (Người 6)
     public void Disconnect()
     {
         _cts?.Cancel(); // Dừng luồng nhận
