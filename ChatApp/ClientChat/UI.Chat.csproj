@@ -58,13 +58,24 @@
     <Compile Include="FormChat.Designer.cs">
       <DependentUpon>FormChat.cs</DependentUpon>
     </Compile>
+    <Compile Include="FrmCreate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmCreate.Designer.cs">
+      <DependentUpon>FrmCreate.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="FormChat.resx">
       <DependentUpon>FormChat.cs</DependentUpon>
     </EmbeddedResource>
+<<<<<<< HEAD:ChatApp/ClientChat/ClientChat.csproj
     <EmbeddedResource Include="FormLogin.resx">
       <DependentUpon>FormLogin.cs</DependentUpon>
+=======
+    <EmbeddedResource Include="FrmCreate.resx">
+      <DependentUpon>FrmCreate.cs</DependentUpon>
+>>>>>>> 0b20eb3d9a3d89ecd1b97566b2407d1d8728a5a9:ChatApp/ClientChat/UI.Chat.csproj
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

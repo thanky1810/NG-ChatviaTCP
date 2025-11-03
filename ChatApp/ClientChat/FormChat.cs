@@ -48,6 +48,7 @@ namespace ClientChat
             string time = DateTime.Now.ToString("HH:mm:ss");
             string message = txtMessInput.Text.Trim();
 
+<<<<<<< HEAD
             Label lbl = new Label();
             lbl.AutoSize = true;
             lbl.Text = $" {time} - {senderName}: {message} ";
@@ -55,6 +56,10 @@ namespace ClientChat
 
             pnlMessList.Controls.Add(lbl);
             pnlMessList.ScrollControlIntoView(lbl);
+=======
+            AppendChatMessage(time, senderName, message, true); // true = tin của mình
+
+>>>>>>> 0b20eb3d9a3d89ecd1b97566b2407d1d8728a5a9
             txtMessInput.Clear();
         }
 
@@ -67,9 +72,15 @@ namespace ClientChat
         private void Chat_TCP_Client_FormClosing(object sender, FormClosingEventArgs e)
         {
             DialogResult result = MessageBox.Show(
+<<<<<<< HEAD
                 "Are you sure you want to leave the chat?",
                 "Confirm Leave",
                 MessageBoxButtons.YesNo,
+=======
+                "Are you sure you want to close the chat?", 
+                "Confirm Leave", 
+                MessageBoxButtons.YesNo, 
+>>>>>>> 0b20eb3d9a3d89ecd1b97566b2407d1d8728a5a9
                 MessageBoxIcon.Question);
             e.Cancel = (result != DialogResult.Yes);
         }
@@ -84,12 +95,68 @@ namespace ClientChat
 
         private void btnCreate_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Create Room functionality is not implemented yet.");
+            using (var dlg = new FrmCreate())
+            {
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                {
+                    var roomName = dlg.RoomName; // <-- Đọc từ property
+
+                    if (!string.IsNullOrEmpty(roomName))
+                    {
+                        // Nếu chị KHÔNG dùng DataSource:
+                        lboxRooms.Items.Add(roomName);
+
+                        // Nếu chị có đặt DataSource (BindingList<string>), dùng:
+                        // roomsBindingList.Add(roomName);
+                    }
+
+                }
+
+            }
         }
 
         private void btnLogOut_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Log Out functionality is not implemented yet.");
+           MessageBox.Show("Log Out functionality is not implemented yet.",
+                "Info",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+                );
+
         }
+
+        private void lboxRooms_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void rtbMessList_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+        private void AppendChatMessage(string time, string sender, string message, bool isSelf)
+        {
+            rtbMessList.SelectionStart = rtbMessList.TextLength;
+
+            // Phần thời gian
+            rtbMessList.SelectionColor = Color.Gray;
+            rtbMessList.AppendText($"{time} ");
+
+            // Phần tên
+            rtbMessList.SelectionColor = isSelf ? Color.Blue : Color.Purple; // xanh cho mình, tím cho người khác
+            rtbMessList.AppendText($"{sender}: ");
+
+            // Phần nội dung
+            rtbMessList.SelectionColor = Color.Black;
+            rtbMessList.AppendText($"{message}{Environment.NewLine}");
+
+            // 👉 Reset màu về đen cho chắc chắn dòng sau không bị lem
+            rtbMessList.SelectionColor = Color.Black;
+
+            // Cuộn xuống cuối
+            rtbMessList.SelectionStart = rtbMessList.TextLength;
+            rtbMessList.ScrollToCaret();
+        }
+
     }
 }
