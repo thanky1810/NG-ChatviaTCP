@@ -1,20 +1,20 @@
-﻿// File: Chat.Server/ChatServer.cs
+// File: Chat.Server/ChatServer.cs
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using Chat.Shared; // <-- QUAN TRỌNG: Thêm reference
+using Chat.Shared;
 
 namespace Chat.Server;
 
-// (Gợi ý mục 10.1) Lớp quản lý kết nối
 public class ConnectionState
 {
     public TcpClient Client { get; }
     public NetworkStream Stream { get; }
-    public string? Username { get; set; } // Sẽ được set sau khi login
+    public string? Username { get; set; }
 
     public ConnectionState(TcpClient client)
     {
@@ -27,9 +27,7 @@ public class ChatServer
 {
     private readonly TcpListener _listener;
 
-    // TODO (Người 2 & 3): Sử dụng các cấu trúc dữ liệu này
-    // (Mục 10.1: Quản lý state của server)
-    // Đảm bảo dùng ConcurrentDictionary vì sẽ có nhiều luồng truy cập
+    // 🔹 Quản lý danh sách người dùng & phòng
     private readonly ConcurrentDictionary<string, ConnectionState> _users = new();
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ConnectionState>> _rooms = new();
 
@@ -43,20 +41,17 @@ public class ChatServer
         _listener.Start();
         Console.WriteLine($"Server listening on {_listener.LocalEndpoint}");
 
-        // Vòng lặp vô tận để chấp nhận client mới (mục 6.1)
         while (true)
         {
             try
             {
                 TcpClient client = await _listener.AcceptTcpClientAsync();
-                Console.WriteLine($"New client connected: {client.Client.RemoteEndPoint}");
+                await Task.Delay(50); // tránh backlog socket khi test nhanh
 
-                // Tạo một ConnectionState mới
+                Console.WriteLine($"New client connected: {client.Client.RemoteEndPoint}");
                 var connection = new ConnectionState(client);
 
-                // Chạy HandleClientAsync trong một Task mới (không await)
-                // để vòng lặp accept có thể tiếp tục
-                _ = HandleClientAsync(connection);
+                _ = HandleClientAsync(connection); // chạy client async
             }
             catch (Exception ex)
             {
@@ -65,59 +60,113 @@ public class ChatServer
         }
     }
 
-    // Hàm này xử lý vòng đời của 1 client
     private async Task HandleClientAsync(ConnectionState connection)
     {
         try
         {
-            // Vòng lặp đọc tin nhắn từ client này
             while (true)
             {
-                // Đọc message (đã xử lý length-prefix)
                 BaseMessage message = await NetworkHelpers.ReadMessageAsync(connection.Stream);
 
-                // TODO (Người 2 & 3): Bắt đầu xử lý logic tại đây
-                // Dùng switch-case với (message.Type) hoặc (message)
                 switch (message)
                 {
+                    // 🔸 Đăng nhập
                     case LoginMessage login:
-                        // TODO (Người 2): Xử lý UC-01
-                        // - Kiểm tra trùng tên trong _users
-                        // - Nếu OK: connection.Username = login.Username;
-                        //           _users.TryAdd(login.Username, connection);
-                        //           Gửi LoginOkMessage
-                        //           Broadcast UserList mới
-                        // - Nếu Fail: Gửi ErrorMessage ("username_taken")
-                        Console.WriteLine($"Received Login from {login.Username}");
+                        connection.Username = login.Username;
+                        _users[login.Username] = connection;
+                        Console.WriteLine($"✅ {login.Username} logged in.");
                         break;
 
+                    // 🔸 Chat công khai
                     case ChatPublicMessage chat:
-                        // TODO (Người 2): Xử lý UC-02
-                        // - Broadcast (gửi lại) message này cho TẤT CẢ user trong _users
-                        Console.WriteLine($"Received Public Chat from {chat.From}: {chat.Text}");
+                        Console.WriteLine($"[PUBLIC] {chat.From}: {chat.Text}");
                         break;
 
+                    // 🔸 Chat riêng
                     case ChatPrivateMessage dm:
-                        // TODO (Người 2): Xử lý UC-03
-                        // - Tìm user 'dm.To' trong _users
-                        // - Nếu thấy -> Gửi cho họ
-                        // - Nếu không thấy -> Gửi ErrorMessage ("user_offline")
                         break;
 
+                    // 🔹 Người 3: Tạo phòng
                     case CreateRoomMessage createRoom:
-                        // TODO (Người 3): Xử lý UC-04 (Create)
-                        break;
+                        {
+                            string room = createRoom.Room;
+                            string creator = connection.Username ?? "unknown";
 
+                            if (_rooms.ContainsKey(room))
+                            {
+                                var err = new ErrorMessage { Type = "error", Text = $"Room '{room}' already exists" };
+                                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+                                break;
+                            }
+
+                            _rooms[room] = new ConcurrentDictionary<string, ConnectionState>();
+                            _rooms[room].TryAdd(creator, connection);
+
+                            Console.WriteLine($"[ROOM] {creator} created room '{room}'");
+
+                            var ok = new StatusMessage { Type = "status", Status = "ok", Text = $"Room '{room}' created" };
+                            await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
+
+                            await BroadcastRoomListAsync();
+                            break;
+                        }
+
+                    // 🔹 Người 3: Tham gia phòng
                     case JoinRoomMessage joinRoom:
-                        // TODO (Người 3): Xử lý UC-04 (Join)
-                        break;
+                        {
+                            string room = joinRoom.Room;
+                            string user = connection.Username ?? "unknown";
 
+                            if (!_rooms.TryGetValue(room, out var members))
+                            {
+                                var err = new ErrorMessage { Type = "error", Text = $"Room '{room}' not found" };
+                                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+                                break;
+                            }
+
+                            members[user] = connection;
+                            Console.WriteLine($"[ROOM] {user} joined room '{room}'");
+
+                            var ok = new StatusMessage { Type = "status", Status = "ok", Text = $"Joined room '{room}'" };
+                            await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
+                            break;
+                        }
+
+                    // 🔹 Người 3: Chat trong phòng
+                    case ChatRoomMessage chatRoom:
+                        {
+                            string room = chatRoom.Room;
+                            string senderName = connection.Username ?? "unknown";
+
+                            if (!_rooms.TryGetValue(room, out var members) || !members.ContainsKey(senderName))
+                            {
+                                var err = new ErrorMessage { Type = "error", Text = "You are not in this room" };
+                                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+                                break;
+                            }
+
+                            var msg = new ChatRoomMessage
+                            {
+                                Type = "chat_room",
+                                Room = room,
+                                From = senderName,
+                                Text = chatRoom.Text
+                            };
+
+                            foreach (var kvp in members)
+                            {
+                                var targetConn = kvp.Value;
+                                if (targetConn != connection)
+                                    await NetworkHelpers.SendMessageAsync(targetConn.Stream, msg);
+                            }
+
+                            Console.WriteLine($"[ROOM] {senderName}@{room}: {chatRoom.Text}");
+                            break;
+                        }
+
+                    // 🔸 Logout
                     case LogoutMessage logout:
-                        // TODO (Người 2): Xử lý UC-06
-                        // - Đóng socket và gọi hàm Cleanup
                         throw new IOException("User requested logout.");
-
-                    // Thêm các case khác...
 
                     default:
                         Console.WriteLine($"Unknown message type: {message.Type}");
@@ -127,34 +176,66 @@ public class ChatServer
         }
         catch (IOException ex)
         {
-            // Client ngắt kết nối (chủ động logout hoặc rớt mạng)
             Console.WriteLine($"Client disconnected: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Lỗi deserialize hoặc lỗi logic
             Console.WriteLine($"Error handling client: {ex.Message}");
-            // (Tùy chọn) Gửi ErrorMessage về client nếu có thể
         }
         finally
         {
-            // --- TODO (Người 2 & 3): Xử lý Cleanup ---
-            // Đây là phần quan trọng khi client logout (UC-06) hoặc rớt mạng (AC-05)
-
-            // 1. (Người 2) Xóa user khỏi danh sách online
             if (connection.Username != null)
             {
                 _users.TryRemove(connection.Username, out _);
 
-                // 2. (Người 3) Xóa user khỏi tất cả các phòng
-                // (Viết logic duyệt _rooms và xóa user này)
+                // 🔹 Xóa user khỏi tất cả phòng
+                foreach (var room in _rooms.Values)
+                    room.TryRemove(connection.Username, out _);
 
-                // 3. (Người 2) Broadcast UserList MỚI
-                // (Viết logic gửi UserListMessage cho tất cả user còn lại)
-
-                Console.WriteLine($"User {connection.Username ?? "unknown"} cleaned up.");
+                Console.WriteLine($"User {connection.Username} cleaned up.");
             }
-            connection.Client.Close();
+
+            // 🔹 Đảm bảo giải phóng socket hoàn toàn
+            try
+            {
+                connection.Stream.Close();
+                connection.Client.Close();
+            }
+            catch { }
+        }
+    }
+
+    // 🧩 Gửi tin nhắn đến toàn bộ user trong phòng
+    private async Task BroadcastToRoomAsync(string room, BaseMessage message)
+    {
+        if (!_rooms.TryGetValue(room, out var members)) return;
+
+        foreach (var kvp in members)
+        {
+            ConnectionState conn = kvp.Value;
+            try
+            {
+                await NetworkHelpers.SendMessageAsync(conn.Stream, message);
+            }
+            catch
+            {
+                Console.WriteLine($"Error sending to {conn.Username}");
+            }
+        }
+    }
+
+    // 🧩 Gửi danh sách phòng đến toàn bộ user
+    private async Task BroadcastRoomListAsync()
+    {
+        var roomList = new RoomListMessage
+        {
+            Type = "room_list",
+            Rooms = new List<string>(_rooms.Keys)
+        };
+
+        foreach (var conn in _users.Values)
+        {
+            await NetworkHelpers.SendMessageAsync(conn.Stream, roomList);
         }
     }
 }
