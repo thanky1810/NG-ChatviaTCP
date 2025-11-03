@@ -1,22 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ClientChat
 {
     internal static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
         [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Chat_TCP_Client());
+
+            using (var login = new FormLogin())
+            {
+                // Hiển thị modal; chỉ tiếp tục khi người dùng nhấn CONNECT (DialogResult.OK)
+                if (login.ShowDialog() != DialogResult.OK)
+                    return;
+
+                var chat = new Chat_TCP_Client
+                {
+                    UserName = login.UserName
+                    // nếu cần: Host = login.Host, Port = login.Port
+                };
+
+                Application.Run(chat);
+            }
         }
     }
 }
