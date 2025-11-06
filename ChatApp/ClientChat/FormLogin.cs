@@ -9,6 +9,14 @@ namespace ClientChat
         public FormLogin()
         {
             InitializeComponent();
+            // Không cho nút Connect nhận focus bằng Tab
+            this.btnConnect.TabStop = false;
+
+            // Đặt lại TabIndex cho 3 ô để Tab chỉ quay vòng giữa chúng
+            this.txtHost.TabIndex = 0;
+            this.txtPort.TabIndex = 1;
+            this.txtUserName.TabIndex = 2;
+
             // Đăng ký sự kiện Shown — chạy sau khi form đã được hiển thị
             this.Shown += FormLogin_Shown;
 
@@ -17,6 +25,15 @@ namespace ClientChat
             this.txtPort.KeyDown += TxtPort_KeyDown;
             this.txtUserName.KeyDown += TxtUserName_KeyDown;
             this.btnConnect.Click += BtnConnect_Click;
+
+            // Giới hạn độ dài và đăng ký sự kiện cho các TextBox
+            this.txtHost.MaxLength = 15;
+            this.txtUserName.MaxLength = 15;
+
+            // Port: chỉ cho nhập 4 chữ số
+            this.txtPort.MaxLength = 4;
+            this.txtPort.KeyPress += TxtPort_KeyPress;
+            this.txtPort.TextChanged += TxtPort_TextChanged;
         }
 
         private void FormLogin_Load(object sender, EventArgs e)
@@ -88,6 +105,46 @@ namespace ClientChat
             }
         }
 
+        // Chặn nhập ký tự không phải số ở ô Port
+        private void TxtPort_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // Cho phép phím điều khiển (backspace, etc.) và các chữ số
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+            {
+                e.Handled = true;
+            }
+        }
+
+        // Xử lý khi paste hoặc thay đổi text: chỉ giữ các chữ số và cắt tối đa 4 ký tự
+        private void TxtPort_TextChanged(object sender, EventArgs e)
+        {
+            var txt = txtPort.Text;
+            if (string.IsNullOrEmpty(txt))
+                return;
+
+            // Lọc chỉ giữ chữ số
+            var digitsOnlyChars = new System.Text.StringBuilder(txt.Length);
+            foreach (char c in txt)
+            {
+                if (char.IsDigit(c))
+                    digitsOnlyChars.Append(c);
+            }
+
+            var digitsOnly = digitsOnlyChars.ToString();
+
+            // Cắt tối đa 4 chữ số
+            if (digitsOnly.Length > 4)
+                digitsOnly = digitsOnly.Substring(0, 4);
+
+            if (digitsOnly != txt)
+            {
+                int selStart = txtPort.SelectionStart;
+                txtPort.Text = digitsOnly;
+                // Điều chỉnh con trỏ
+                txtPort.SelectionStart = Math.Min(selStart, txtPort.Text.Length);
+            }
+        }
+
         private void BtnConnect_Click(object sender, EventArgs e)
         {
             // Kiểm tra nhanh: đảm bảo các trường không để trống
@@ -130,5 +187,15 @@ namespace ClientChat
         }
 
         public string UserName => txtUserName.Text.Trim();
+
+        private void panelLogin_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void txtHost_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

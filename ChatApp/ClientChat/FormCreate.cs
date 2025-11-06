@@ -10,11 +10,11 @@ using System.Windows.Forms;
 
 namespace ClientChat
 {
-    public partial class FrmCreate : Form
+    public partial class FormCreate : Form
     {
         public string RoomName => txtRoomName.Text.Trim();
 
-        public FrmCreate()
+        public FormCreate()
         {
             InitializeComponent();
             btnOk.DialogResult = DialogResult.OK;  

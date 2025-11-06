@@ -1,6 +1,6 @@
 ﻿namespace ClientChat
 {
-    partial class FrmCreate
+    partial class FormCreate
     {
         /// <summary>
         /// Required designer variable.
