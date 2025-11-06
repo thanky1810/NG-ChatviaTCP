@@ -48,18 +48,8 @@ namespace ClientChat
             string time = DateTime.Now.ToString("HH:mm:ss");
             string message = txtMessInput.Text.Trim();
 
-<<<<<<< HEAD
-            Label lbl = new Label();
-            lbl.AutoSize = true;
-            lbl.Text = $" {time} - {senderName}: {message} ";
-            lbl.Location = new Point(10, pnlMessList.Controls.Count * 25);
-
-            pnlMessList.Controls.Add(lbl);
-            pnlMessList.ScrollControlIntoView(lbl);
-=======
             AppendChatMessage(time, senderName, message, true); // true = tin của mình
 
->>>>>>> 0b20eb3d9a3d89ecd1b97566b2407d1d8728a5a9
             txtMessInput.Clear();
         }
 
@@ -72,15 +62,9 @@ namespace ClientChat
         private void Chat_TCP_Client_FormClosing(object sender, FormClosingEventArgs e)
         {
             DialogResult result = MessageBox.Show(
-<<<<<<< HEAD
-                "Are you sure you want to leave the chat?",
+                "Are you sure you want to close the chat?",
                 "Confirm Leave",
                 MessageBoxButtons.YesNo,
-=======
-                "Are you sure you want to close the chat?", 
-                "Confirm Leave", 
-                MessageBoxButtons.YesNo, 
->>>>>>> 0b20eb3d9a3d89ecd1b97566b2407d1d8728a5a9
                 MessageBoxIcon.Question);
             e.Cancel = (result != DialogResult.Yes);
         }
