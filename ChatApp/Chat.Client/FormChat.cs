@@ -1,4 +1,4 @@
-﻿// File: UI.Chat/FormChat.cs (ĐÃ SỬA LỖI GỬI TIN & RỜI PHÒNG + CẢI TIẾN LƯU CHAT)
+﻿// File: UI.Chat/FormChat.cs (ĐÃ SỬA LỖI "LEAVE ROOM")
 using Chat.Client;
 using Chat.Shared;
 using System;
@@ -8,8 +8,8 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 
-// Đảm bảo namespace này khớp với project của bạn (ClientChat hoặc Chat.Client)
-namespace Chat.Client
+// Đảm bảo namespace này khớp với project của bạn
+namespace Chat.Client // (Hoặc namespace Chat.Client)
 {
     public partial class Chat_TCP_Client : Form
     {
@@ -30,8 +30,8 @@ namespace Chat.Client
         private ChatContext _currentContext = ChatContext.Public;
         private string _currentContextTarget = "public";
 
-        // ✅ CẢI TIẾN: Bộ nhớ đệm (Dictionary) để lưu lịch sử chat
-        private Dictionary<string, string> _chatHistories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // ✅ CẢI TIẾN: Bộ nhớ đệm lưu lịch sử chat
+        private Dictionary<string, string> _chatHistories = new Dictionary<string, string>();
 
         public Chat_TCP_Client()
         {
@@ -70,7 +70,6 @@ namespace Chat.Client
                 lboxRooms.Items.Add(room);
         }
 
-        // ✅ SỬA LỖI: Logic xử lý tin nhắn và lưu lịch sử
         private void ProcessMessage(BaseMessage message)
         {
             if (this.InvokeRequired)
@@ -83,22 +82,18 @@ namespace Chat.Client
             string sender = "??";
             string text = "";
             string ts = DateTime.UtcNow.ToString("o");
-            bool isSelf = false;
 
             switch (message)
             {
                 case ChatPublicMessage chat:
-                    if (chat.From == this.UserName) return; // Bỏ qua tin của chính mình (vì đã Append ở btnSend)
                     messageContext = "public";
                     sender = chat.From; text = chat.Text; ts = chat.Timestamp;
                     break;
                 case ChatPrivateMessage dm:
-                    if (dm.From == this.UserName) return; // Bỏ qua tin của chính mình
-                    messageContext = dm.From; // Context là người gửi (mình là người nhận)
+                    messageContext = (dm.From == this.UserName) ? dm.To : dm.From;
                     sender = dm.From; text = dm.Text; ts = dm.Timestamp;
                     break;
                 case ChatRoomMessage roomChat:
-                    if (roomChat.From == this.UserName) return; // Bỏ qua tin của chính mình
                     messageContext = roomChat.Room;
                     sender = roomChat.From; text = roomChat.Text; ts = roomChat.Timestamp;
                     break;
@@ -122,33 +117,14 @@ namespace Chat.Client
             // Nếu tin nhắn thuộc tab đang mở, hiển thị ngay
             if (messageContext == _currentContextTarget)
             {
-                AppendChatMessage(ts, sender, text, isSelf);
+                AppendChatMessage(ts, sender, text, sender == this.UserName);
             }
-            else if (!string.IsNullOrEmpty(messageContext))
+            else
             {
-                // ✅ CẢI TIẾN: Nếu tab không mở, lưu vào lịch sử (dictionary)
-                string oldRtf = _chatHistories.ContainsKey(messageContext) ? _chatHistories[messageContext] : "";
-                using (var tempRtb = new RichTextBox())
-                {
-                    if (!string.IsNullOrEmpty(oldRtf)) tempRtb.Rtf = oldRtf;
-
-                    // (Logic sao chép từ AppendChatMessage)
-                    string time = DateTime.TryParse(ts, out var dt) ? dt.ToLocalTime().ToString("HH:mm:ss") : DateTime.Now.ToString("HH:mm:ss");
-                    tempRtb.SelectionStart = tempRtb.TextLength;
-                    tempRtb.SelectionColor = Color.Gray;
-                    tempRtb.AppendText($"{time} ");
-                    tempRtb.SelectionColor = Color.Purple; // Tin nhắn nhận được luôn là màu tím
-                    tempRtb.AppendText($"{sender}: ");
-                    tempRtb.SelectionColor = Color.Black;
-                    tempRtb.AppendText($"{text}{Environment.NewLine}");
-
-                    // Lưu lại lịch sử mới
-                    _chatHistories[messageContext] = tempRtb.Rtf;
-                }
+                // (Nâng cao) Báo tin nhắn mới
             }
         }
 
-        // ✅ SỬA LỖI: Logic gửi tin
         private async void btnSend_Click(object sender, EventArgs e)
         {
             string text = txtMessInput.Text;
@@ -169,10 +145,6 @@ namespace Chat.Client
                 default:
                     return;
             }
-
-            // ✅ SỬA LỖI: Thêm lại "Optimistic Send"
-            // Hiển thị tin nhắn của chính mình ngay lập tức
-            AppendChatMessage(DateTime.UtcNow.ToString("o"), this.UserName, text, true);
 
             try
             {
@@ -217,19 +189,23 @@ namespace Chat.Client
             UpdateChatContext(ChatContext.Private, username);
         }
 
-        // ✅ SỬA LỖI: Logic rời phòng
+        //
+        // ✅ ĐÂY LÀ SỬA LỖI CỦA BẠN
+        //
         private async void btnLeave_Click(object sender, EventArgs e)
         {
             if (_currentContext != ChatContext.Room)
             {
+                // Nút này chỉ nên được bật khi ở trong phòng,
+                // nhưng chúng ta vẫn kiểm tra cho chắc
                 MessageBox.Show("Bạn không ở trong phòng nào.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            // 1. Gửi yêu cầu
+            // 1. Gửi yêu cầu rời phòng
             await Client.SendMessageAsync(new LeaveRoomMessage { Room = _currentContextTarget });
 
-            // 2. ✅ SỬA LỖI: Cập nhật UI về Public
+            // 2. ✅ SỬA LỖI: Ngay lập tức chuyển UI về "Chat Công Khai"
             UpdateChatContext(ChatContext.Public, "public");
         }
 
@@ -246,6 +222,7 @@ namespace Chat.Client
 
             Client.Disconnect();
             _cts.Cancel();
+
             this.Close(); // Program.cs sẽ mở lại FormLogin
         }
 
@@ -291,17 +268,13 @@ namespace Chat.Client
             rtbMessList.ScrollToCaret();
         }
 
-        // ✅ CẢI TIẾN: Hàm này giờ đây LƯU lịch sử sau khi thêm
         private void AppendChatMessage(string timeStr, string sender, string message, bool isSelf, Color? senderColor = null)
         {
             string time = DateTime.TryParse(timeStr, out var dt)
                 ? dt.ToLocalTime().ToString("HH:mm:ss")
                 : DateTime.Now.ToString("HH:mm:ss");
 
-            // (Phải cuộn xuống trước khi thêm, nếu không sẽ bị giật)
             rtbMessList.SelectionStart = rtbMessList.TextLength;
-            rtbMessList.ScrollToCaret();
-
             rtbMessList.SelectionColor = Color.Gray;
             rtbMessList.AppendText($"{time} ");
 
@@ -311,11 +284,8 @@ namespace Chat.Client
             rtbMessList.SelectionColor = Color.Black;
             rtbMessList.AppendText($"{message}{Environment.NewLine}");
 
-            // ✅ CẢI TIẾN: Lưu lại lịch sử (Rtf) ngay sau khi thêm
-            if (!string.IsNullOrEmpty(_currentContextTarget))
-            {
-                _chatHistories[_currentContextTarget] = rtbMessList.Rtf;
-            }
+            rtbMessList.SelectionStart = rtbMessList.TextLength;
+            rtbMessList.ScrollToCaret();
         }
 
         #region (Các hàm UI gốc)
