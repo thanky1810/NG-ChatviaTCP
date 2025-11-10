@@ -1,9 +1,10 @@
 ﻿// File: UI.Chat/Program.cs
+using Chat.Client;
 using Chat.Shared; // ✅ Thêm
 using System;
 using System.Windows.Forms;
 
-namespace ClientChat
+namespace Chat.Client
 {
     internal static class Program
     {

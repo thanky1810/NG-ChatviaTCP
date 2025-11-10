@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -15,7 +16,6 @@ public class ConnectionState
     public TcpClient Client { get; }
     public NetworkStream Stream { get; }
     public string? Username { get; set; }
-
     public ConnectionState(TcpClient client)
     {
         Client = client;
@@ -26,36 +26,39 @@ public class ConnectionState
 public class ChatServer
 {
     private readonly TcpListener _listener;
+    private readonly ConcurrentDictionary<string, ConnectionState> _users = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ConnectionState>> _rooms = new(StringComparer.OrdinalIgnoreCase);
 
-    // 🔹 Quản lý danh sách người dùng & phòng
-    private readonly ConcurrentDictionary<string, ConnectionState> _users = new();
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ConnectionState>> _rooms = new();
+    public event Action<string>? LogMessageReceived;
+    public event Action<List<string>>? UserListChanged;
+    public event Action<List<string>>? RoomListChanged;
 
     public ChatServer(string ip, int port)
     {
         _listener = new TcpListener(IPAddress.Parse(ip), port);
+        _rooms["public"] = new ConcurrentDictionary<string, ConnectionState>(StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task StartAsync()
     {
         _listener.Start();
-        Console.WriteLine($"Server listening on {_listener.LocalEndpoint}");
+        LogMessageReceived?.Invoke($"[INFO] Server listening on {_listener.LocalEndpoint}");
+
+        RoomListChanged?.Invoke(new List<string>(_rooms.Keys.OrderBy(r => r)));
+        UserListChanged?.Invoke(new List<string>(_users.Keys.OrderBy(u => u)));
 
         while (true)
         {
             try
             {
                 TcpClient client = await _listener.AcceptTcpClientAsync();
-                await Task.Delay(50); // tránh backlog socket khi test nhanh
-
-                Console.WriteLine($"New client connected: {client.Client.RemoteEndPoint}");
+                LogMessageReceived?.Invoke($"[INFO] New client connected: {client.Client.RemoteEndPoint}");
                 var connection = new ConnectionState(client);
-
-                _ = HandleClientAsync(connection); // chạy client async
+                _ = HandleClientAsync(connection);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error accepting client: {ex.Message}");
+                LogMessageReceived?.Invoke($"[ERROR] Error accepting client: {ex.Message}");
             }
         }
     }
@@ -67,135 +70,71 @@ public class ChatServer
             while (true)
             {
                 BaseMessage message = await NetworkHelpers.ReadMessageAsync(connection.Stream);
-
                 switch (message)
                 {
-                    // 🔸 Đăng nhập
                     case LoginMessage login:
-                        connection.Username = login.Username;
-                        _users[login.Username] = connection;
-                        Console.WriteLine($"✅ {login.Username} logged in.");
+                        await HandleLoginAsync(connection, login);
                         break;
-
-                    // 🔸 Chat công khai
-                    case ChatPublicMessage chat:
-                        Console.WriteLine($"[PUBLIC] {chat.From}: {chat.Text}");
+                    case ChatPublicMessage chatPublic:
+                        await BroadcastPublicMessageAsync(connection, chatPublic);
                         break;
-
-                    // 🔸 Chat riêng
                     case ChatPrivateMessage dm:
+                        await HandlePrivateMessageAsync(connection, dm);
                         break;
-
-                    // 🔹 Người 3: Tạo phòng
                     case CreateRoomMessage createRoom:
-                        {
-                            string room = createRoom.Room;
-                            string creator = connection.Username ?? "unknown";
-
-                            if (_rooms.ContainsKey(room))
-                            {
-                                var err = new ErrorMessage { Type = "error", Text = $"Room '{room}' already exists" };
-                                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
-                                break;
-                            }
-
-                            _rooms[room] = new ConcurrentDictionary<string, ConnectionState>();
-                            _rooms[room].TryAdd(creator, connection);
-
-                            Console.WriteLine($"[ROOM] {creator} created room '{room}'");
-
-                            var ok = new StatusMessage { Type = "status", Status = "ok", Text = $"Room '{room}' created" };
-                            await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
-
-                            await BroadcastRoomListAsync();
-                            break;
-                        }
-
-                    // 🔹 Người 3: Tham gia phòng
+                        await HandleCreateRoomAsync(connection, createRoom);
+                        break;
                     case JoinRoomMessage joinRoom:
-                        {
-                            string room = joinRoom.Room;
-                            string user = connection.Username ?? "unknown";
-
-                            if (!_rooms.TryGetValue(room, out var members))
-                            {
-                                var err = new ErrorMessage { Type = "error", Text = $"Room '{room}' not found" };
-                                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
-                                break;
-                            }
-
-                            members[user] = connection;
-                            Console.WriteLine($"[ROOM] {user} joined room '{room}'");
-
-                            var ok = new StatusMessage { Type = "status", Status = "ok", Text = $"Joined room '{room}'" };
-                            await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
-                            break;
-                        }
-
-                    // 🔹 Người 3: Chat trong phòng
+                        await HandleJoinRoomAsync(connection, joinRoom);
+                        break;
+                    case LeaveRoomMessage leaveRoom:
+                        await HandleLeaveRoomAsync(connection, leaveRoom);
+                        break;
                     case ChatRoomMessage chatRoom:
-                        {
-                            string room = chatRoom.Room;
-                            string senderName = connection.Username ?? "unknown";
-
-                            if (!_rooms.TryGetValue(room, out var members) || !members.ContainsKey(senderName))
-                            {
-                                var err = new ErrorMessage { Type = "error", Text = "You are not in this room" };
-                                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
-                                break;
-                            }
-
-                            var msg = new ChatRoomMessage
-                            {
-                                Type = "chat_room",
-                                Room = room,
-                                From = senderName,
-                                Text = chatRoom.Text
-                            };
-
-                            foreach (var kvp in members)
-                            {
-                                var targetConn = kvp.Value;
-                                if (targetConn != connection)
-                                    await NetworkHelpers.SendMessageAsync(targetConn.Stream, msg);
-                            }
-
-                            Console.WriteLine($"[ROOM] {senderName}@{room}: {chatRoom.Text}");
-                            break;
-                        }
-
-                    // 🔸 Logout
-                    case LogoutMessage logout:
+                        await BroadcastToRoomAsync(connection, chatRoom);
+                        break;
+                    case LogoutMessage:
+                        LogMessageReceived?.Invoke($"[INFO] {connection.Username} requested logout.");
                         throw new IOException("User requested logout.");
-
                     default:
-                        Console.WriteLine($"Unknown message type: {message.Type}");
+                        LogMessageReceived?.Invoke($"[WARN] Unknown message type from {connection.Username}");
                         break;
                 }
             }
         }
         catch (IOException ex)
         {
-            Console.WriteLine($"Client disconnected: {ex.Message}");
+            LogMessageReceived?.Invoke($"[INFO] Client disconnected: {connection.Username ?? "pending login"} | Reason: {ex.Message}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error handling client: {ex.Message}");
+            LogMessageReceived?.Invoke($"[ERROR] Error handling client {connection.Username}: {ex.Message}");
+            try
+            {
+                var err = new ErrorMessage { Code = "server_error", Message = ex.Message };
+                await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+            }
+            catch { }
         }
         finally
         {
             if (connection.Username != null)
             {
                 _users.TryRemove(connection.Username, out _);
+                foreach (var roomName in _rooms.Keys)
+                {
+                    if (_rooms.TryGetValue(roomName, out var members))
+                    {
+                        members.TryRemove(connection.Username, out _);
+                    }
+                }
+                LogMessageReceived?.Invoke($"[INFO] User {connection.Username} cleaned up.");
 
-                // 🔹 Xóa user khỏi tất cả phòng
-                foreach (var room in _rooms.Values)
-                    room.TryRemove(connection.Username, out _);
+                await BroadcastUserListAsync();
 
-                Console.WriteLine($"User {connection.Username} cleaned up.");
+                var sysMsg = new SystemMessage { Text = $"{connection.Username} đã rời khỏi chat." };
+                await BroadcastToAllAsync(sysMsg, connection);
             }
-
-            // 🔹 Đảm bảo giải phóng socket hoàn toàn
             try
             {
                 connection.Stream.Close();
@@ -205,37 +144,193 @@ public class ChatServer
         }
     }
 
-    // 🧩 Gửi tin nhắn đến toàn bộ user trong phòng
-    private async Task BroadcastToRoomAsync(string room, BaseMessage message)
+    private async Task HandleLoginAsync(ConnectionState connection, LoginMessage login)
     {
-        if (!_rooms.TryGetValue(room, out var members)) return;
-
-        foreach (var kvp in members)
+        if (_users.ContainsKey(login.Username))
         {
-            ConnectionState conn = kvp.Value;
-            try
+            LogMessageReceived?.Invoke($"[WARN] Login failed: {login.Username} (username_taken)");
+            var err = new ErrorMessage { Code = "username_taken", Message = $"Tên '{login.Username}' đã được sử dụng." };
+            await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+            throw new IOException("Login failed: username taken.");
+        }
+
+        connection.Username = login.Username;
+        _users[login.Username] = connection;
+        LogMessageReceived?.Invoke($"[INFO] User logged in: {login.Username}");
+
+        var ok = new LoginOkMessage
+        {
+            Users = new List<string>(_users.Keys.OrderBy(u => u)),
+            Rooms = new List<string>(_rooms.Keys.OrderBy(r => r))
+        };
+        await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
+        await BroadcastUserListAsync();
+        var sysMsg = new SystemMessage { Text = $"{login.Username} vừa tham gia chat." };
+        await BroadcastToAllAsync(sysMsg, connection);
+    }
+
+    private async Task BroadcastPublicMessageAsync(ConnectionState sender, ChatPublicMessage chat)
+    {
+        LogMessageReceived?.Invoke($"[PUBLIC] {sender.Username}: {chat.Text}");
+        var msg = new ChatPublicMessage
+        {
+            From = sender.Username ?? "unknown",
+            Text = chat.Text,
+            Timestamp = DateTime.UtcNow.ToString("o")
+        };
+        await BroadcastToAllAsync(msg, null);
+    }
+
+    private async Task HandlePrivateMessageAsync(ConnectionState sender, ChatPrivateMessage dm)
+    {
+        LogMessageReceived?.Invoke($"[DM] {sender.Username} -> {dm.To}: {dm.Text}");
+        var msg = new ChatPrivateMessage
+        {
+            From = sender.Username ?? "unknown",
+            To = dm.To,
+            Text = dm.Text,
+            Timestamp = DateTime.UtcNow.ToString("o")
+        };
+
+        if (_users.TryGetValue(dm.To, out var targetConn))
+        {
+            await NetworkHelpers.SendMessageAsync(targetConn.Stream, msg);
+        }
+        else
+        {
+            var err = new ErrorMessage { Code = "user_offline", Message = $"Người dùng '{dm.To}' không online." };
+            await NetworkHelpers.SendMessageAsync(sender.Stream, err);
+        }
+
+        // ✅ SỬA LỖI CHAT RIÊNG: Gửi lại tin nhắn cho người gửi
+        // (Chỉ gửi nếu người gửi không phải là người nhận)
+        if (string.Compare(sender.Username, dm.To, StringComparison.OrdinalIgnoreCase) != 0)
+        {
+            await NetworkHelpers.SendMessageAsync(sender.Stream, msg);
+        }
+    }
+
+    private async Task HandleCreateRoomAsync(ConnectionState connection, CreateRoomMessage createRoom)
+    {
+        string room = createRoom.Room;
+        string creator = connection.Username ?? "unknown";
+
+        if (_rooms.TryAdd(room, new ConcurrentDictionary<string, ConnectionState>(StringComparer.OrdinalIgnoreCase)))
+        {
+            LogMessageReceived?.Invoke($"[ROOM] {creator} created room '{room}'");
+            _rooms[room][creator] = connection;
+            var ok = new SystemMessage { Text = $"Đã tạo phòng '{room}'." };
+            await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
+            await BroadcastRoomListAsync();
+        }
+        else
+        {
+            var err = new ErrorMessage { Code = "room_exists", Message = $"Phòng '{room}' đã tồn tại." };
+            await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+        }
+    }
+
+    private async Task HandleJoinRoomAsync(ConnectionState connection, JoinRoomMessage joinRoom)
+    {
+        string room = joinRoom.Room;
+        string user = connection.Username ?? "unknown";
+
+        if (!_rooms.TryGetValue(room, out var members))
+        {
+            var err = new ErrorMessage { Code = "room_not_found", Message = $"Không tìm thấy phòng '{room}'." };
+            await NetworkHelpers.SendMessageAsync(connection.Stream, err);
+            return;
+        }
+
+        members[user] = connection;
+        LogMessageReceived?.Invoke($"[ROOM] {user} joined room '{room}'");
+        var ok = new SystemMessage { Text = $"Bạn đã tham gia phòng '{room}'." };
+        await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
+        var sysMsg = new SystemMessage { Text = $"{user} vừa tham gia phòng." };
+        await BroadcastToRoomAsync(room, sysMsg, connection);
+    }
+
+    private async Task HandleLeaveRoomAsync(ConnectionState connection, LeaveRoomMessage leaveRoom)
+    {
+        string room = leaveRoom.Room;
+        string user = connection.Username ?? "unknown";
+
+        if (_rooms.TryGetValue(room, out var members))
+        {
+            if (members.TryRemove(user, out _))
             {
-                await NetworkHelpers.SendMessageAsync(conn.Stream, message);
-            }
-            catch
-            {
-                Console.WriteLine($"Error sending to {conn.Username}");
+                LogMessageReceived?.Invoke($"[ROOM] {user} left room '{room}'");
+                var ok = new SystemMessage { Text = $"Bạn đã rời phòng '{room}'." };
+                await NetworkHelpers.SendMessageAsync(connection.Stream, ok);
+                var sysMsg = new SystemMessage { Text = $"{user} đã rời phòng." };
+                await BroadcastToRoomAsync(room, sysMsg, null);
             }
         }
     }
 
-    // 🧩 Gửi danh sách phòng đến toàn bộ user
-    private async Task BroadcastRoomListAsync()
+    private async Task BroadcastToRoomAsync(ConnectionState sender, ChatRoomMessage chatRoom)
     {
-        var roomList = new RoomListMessage
-        {
-            Type = "room_list",
-            Rooms = new List<string>(_rooms.Keys)
-        };
+        string room = chatRoom.Room;
+        string senderName = sender.Username ?? "unknown";
 
+        if (!_rooms.TryGetValue(room, out var members) || !members.ContainsKey(senderName))
+        {
+            var err = new ErrorMessage { Code = "not_in_room", Message = "Bạn không ở trong phòng này." };
+            await NetworkHelpers.SendMessageAsync(sender.Stream, err);
+            return;
+        }
+
+        LogMessageReceived?.Invoke($"[ROOM] {senderName}@{room}: {chatRoom.Text}");
+        var msg = new ChatRoomMessage
+        {
+            Room = room,
+            From = senderName,
+            Text = chatRoom.Text,
+            Timestamp = DateTime.UtcNow.ToString("o")
+        };
+        await BroadcastToRoomAsync(room, msg, null);
+    }
+
+    private async Task BroadcastToAllAsync(BaseMessage message, ConnectionState? excludeConnection = null)
+    {
+        var tasks = new List<Task>();
         foreach (var conn in _users.Values)
         {
-            await NetworkHelpers.SendMessageAsync(conn.Stream, roomList);
+            if (conn != excludeConnection)
+            {
+                tasks.Add(NetworkHelpers.SendMessageAsync(conn.Stream, message));
+            }
         }
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task BroadcastToRoomAsync(string room, BaseMessage message, ConnectionState? excludeConnection = null)
+    {
+        if (!_rooms.TryGetValue(room, out var members)) return;
+        var tasks = new List<Task>();
+        foreach (var conn in members.Values)
+        {
+            if (conn != excludeConnection)
+            {
+                tasks.Add(NetworkHelpers.SendMessageAsync(conn.Stream, message));
+            }
+        }
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task BroadcastUserListAsync()
+    {
+        var users = new List<string>(_users.Keys.OrderBy(u => u));
+        UserListChanged?.Invoke(users);
+        var userListMsg = new UserListMessage { Users = users };
+        await BroadcastToAllAsync(userListMsg, null);
+    }
+
+    private async Task BroadcastRoomListAsync()
+    {
+        var rooms = new List<string>(_rooms.Keys.OrderBy(r => r));
+        RoomListChanged?.Invoke(rooms);
+        var roomListMsg = new RoomListMessage { Rooms = rooms };
+        await BroadcastToAllAsync(roomListMsg, null);
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace ClientChat
+﻿namespace Chat.Client
 {
     partial class FormLogin
     {

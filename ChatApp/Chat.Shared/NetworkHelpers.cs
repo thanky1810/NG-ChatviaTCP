@@ -2,7 +2,6 @@
 using System;
 using System.IO;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -17,13 +16,15 @@ public static class NetworkHelpers
     };
 
     // --- GỬI tin (Client và Server đều dùng) ---
-    // (Serializes, tính độ dài, gửi 4-byte length + payload)
     public static async Task SendMessageAsync(NetworkStream stream, BaseMessage message)
     {
         // 1. Serialize message thành JSON (UTF-8)
-        // Chúng ta cần serialize bằng đúng kiểu runtime của nó (vd: LoginMessage)
-        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(message, message.GetType(), JsonOptions);
-
+        // ✅ SỬA LỖI: Bỏ , message.GetType()
+        // Bằng cách chỉ dùng (message, JsonOptions), chúng ta buộc nó dùng
+        // kiểu static 'BaseMessage', điều này sẽ kích hoạt PolymorphicJsonTypeInfoResolver
+        // và thêm trường "type": "login" một cách chính xác.
+        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
+        
         // 2. Lấy độ dài của payload
         int length = jsonBytes.Length;
 
@@ -42,8 +43,7 @@ public static class NetworkHelpers
     }
 
     // --- NHẬN tin (Client và Server đều dùng) ---
-    // (Đọc 4-byte length, đọc N-byte payload)
-    // Trả về đối tượng BaseMessage đã được deserialize
+    // (Phần này đã đúng, giữ nguyên)
     public static async Task<BaseMessage> ReadMessageAsync(NetworkStream stream)
     {
         byte[] lengthBuffer = new byte[4];
@@ -60,15 +60,18 @@ public static class NetworkHelpers
         }
         int length = BitConverter.ToInt32(lengthBuffer, 0);
 
+        if (length > 1_048_576)
+            throw new IOException($"Payload quá lớn: {length} bytes.");
+        if (length < 2)
+            throw new IOException($"Payload không hợp lệ: {length} bytes.");
+
         // 3. Đọc chính xác N byte (Payload)
         byte[] payloadBuffer = new byte[length];
         bytesRead = await ReadExactBytesAsync(stream, payloadBuffer, length);
         if (bytesRead < length)
             throw new IOException("Socket bị đóng đột ngột khi đang đọc payload.");
 
-        // 4. Deserialize payload (UTF-8) về BaseMessage
-        // System.Text.Json sẽ tự động nhận diện đúng kiểu (Login, Chat, etc.)
-        // nhờ vào thuộc tính "type" và cấu hình JsonOptions
+        // 4. Deserialize payload
         var message = JsonSerializer.Deserialize<BaseMessage>(payloadBuffer, JsonOptions);
 
         if (message == null)

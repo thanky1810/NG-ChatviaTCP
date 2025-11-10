@@ -1,10 +1,18 @@
 ﻿// File: Chat.Server/Program.cs
-using Chat.Server;
+using System;
+using System.Windows.Forms;
 
-Console.WriteLine("Starting Chat Server...");
+namespace Chat.Server;
 
-// Khởi tạo và chạy Server
-var server = new ChatServer("0.0.0.0", 8888); // Lắng nghe trên mọi IP, cổng 8888
+internal static class Program
+{
+    [STAThread]
+    static void Main()
+    {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
 
-await server.StartAsync();
-
+        // ✅ SỬA: Khởi động Form Giao diện
+        Application.Run(new ServerForm());
+    }
+}

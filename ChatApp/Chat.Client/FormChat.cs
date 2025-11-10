@@ -1,4 +1,5 @@
 ﻿// File: UI.Chat/FormChat.cs (ĐÃ SỬA LỖI GỬI TIN & RỜI PHÒNG + CẢI TIẾN LƯU CHAT)
+using Chat.Client;
 using Chat.Shared;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Threading;
 using System.Windows.Forms;
 
 // Đảm bảo namespace này khớp với project của bạn (ClientChat hoặc Chat.Client)
-namespace ClientChat
+namespace Chat.Client
 {
     public partial class Chat_TCP_Client : Form
     {

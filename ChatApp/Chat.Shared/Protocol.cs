@@ -4,23 +4,41 @@ using System.Text.Json.Serialization;
 
 namespace Chat.Shared;
 
-// Lớp cơ sở để xác định loại thông điệp
+//
+// ⚠️ SỬA LỖI: Tất cả các [JsonDerivedType] phải được đặt ở LỚP CHA
+//
+[JsonDerivedType(typeof(LoginMessage), typeDiscriminator: "login")]
+[JsonDerivedType(typeof(LoginOkMessage), typeDiscriminator: "login_ok")]
+[JsonDerivedType(typeof(ErrorMessage), typeDiscriminator: "error")]
+[JsonDerivedType(typeof(LogoutMessage), typeDiscriminator: "logout")]
+[JsonDerivedType(typeof(ChatPublicMessage), typeDiscriminator: "chat_public")]
+[JsonDerivedType(typeof(ChatPrivateMessage), typeDiscriminator: "chat_private")]
+[JsonDerivedType(typeof(ChatRoomMessage), typeDiscriminator: "chat_room")]
+[JsonDerivedType(typeof(CreateRoomMessage), typeDiscriminator: "create_room")]
+[JsonDerivedType(typeof(JoinRoomMessage), typeDiscriminator: "join_room")]
+[JsonDerivedType(typeof(LeaveRoomMessage), typeDiscriminator: "leave_room")]
+[JsonDerivedType(typeof(UserListMessage), typeDiscriminator: "user_list")]
+[JsonDerivedType(typeof(RoomListMessage), typeDiscriminator: "room_list")]
+[JsonDerivedType(typeof(SystemMessage), typeDiscriminator: "system")]
+[JsonDerivedType(typeof(PingMessage), typeDiscriminator: "ping")]
+[JsonDerivedType(typeof(PongMessage), typeDiscriminator: "pong")]
+//
+// Lớp cơ sở (BaseMessage)
+//
 public class BaseMessage
 {
-    [JsonPropertyName("type")]
-    public string Type { get; set; }
+    // ✅ ĐÃ XÓA THUỘC TÍNH "TYPE" KHỎI ĐÂY
+    // Bộ giải mã (PolymorphicJsonTypeInfoResolver) sẽ tự động thêm nó
 }
 
 // --- Nhóm Xác thực / Kết nối ---
 
-[JsonDerivedType(typeof(LoginMessage), typeDiscriminator: "login")]
 public class LoginMessage : BaseMessage
 {
     [JsonPropertyName("username")]
     public string Username { get; set; }
 }
 
-[JsonDerivedType(typeof(LoginOkMessage), typeDiscriminator: "login_ok")]
 public class LoginOkMessage : BaseMessage
 {
     [JsonPropertyName("users")]
@@ -29,7 +47,6 @@ public class LoginOkMessage : BaseMessage
     public List<string> Rooms { get; set; }
 }
 
-[JsonDerivedType(typeof(ErrorMessage), typeDiscriminator: "error")]
 public class ErrorMessage : BaseMessage
 {
     [JsonPropertyName("code")]
@@ -38,7 +55,6 @@ public class ErrorMessage : BaseMessage
     public string Message { get; set; }
 }
 
-[JsonDerivedType(typeof(LogoutMessage), typeDiscriminator: "logout")]
 public class LogoutMessage : BaseMessage
 {
     // Không cần thêm trường nào cho logout
@@ -46,7 +62,6 @@ public class LogoutMessage : BaseMessage
 
 // --- Nhóm Chat ---
 
-[JsonDerivedType(typeof(ChatPublicMessage), typeDiscriminator: "chat_public")]
 public class ChatPublicMessage : BaseMessage
 {
     [JsonPropertyName("from")]
@@ -57,7 +72,6 @@ public class ChatPublicMessage : BaseMessage
     public string Timestamp { get; set; } // Dùng string cho ISO-8601
 }
 
-[JsonDerivedType(typeof(ChatPrivateMessage), typeDiscriminator: "chat_private")]
 public class ChatPrivateMessage : BaseMessage
 {
     [JsonPropertyName("from")]
@@ -70,7 +84,6 @@ public class ChatPrivateMessage : BaseMessage
     public string Timestamp { get; set; }
 }
 
-[JsonDerivedType(typeof(ChatRoomMessage), typeDiscriminator: "chat_room")]
 public class ChatRoomMessage : BaseMessage
 {
     [JsonPropertyName("from")]
@@ -85,21 +98,18 @@ public class ChatRoomMessage : BaseMessage
 
 // --- Nhóm Phòng (Rooms) ---
 
-[JsonDerivedType(typeof(CreateRoomMessage), typeDiscriminator: "create_room")]
 public class CreateRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
     public string Room { get; set; }
 }
 
-[JsonDerivedType(typeof(JoinRoomMessage), typeDiscriminator: "join_room")]
 public class JoinRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
     public string Room { get; set; }
 }
 
-[JsonDerivedType(typeof(LeaveRoomMessage), typeDiscriminator: "leave_room")]
 public class LeaveRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
@@ -108,21 +118,18 @@ public class LeaveRoomMessage : BaseMessage
 
 // --- Nhóm Danh sách & Hệ thống ---
 
-[JsonDerivedType(typeof(UserListMessage), typeDiscriminator: "user_list")]
 public class UserListMessage : BaseMessage
 {
     [JsonPropertyName("users")]
     public List<string> Users { get; set; }
 }
 
-[JsonDerivedType(typeof(RoomListMessage), typeDiscriminator: "room_list")]
 public class RoomListMessage : BaseMessage
 {
     [JsonPropertyName("rooms")]
     public List<string> Rooms { get; set; }
 }
 
-[JsonDerivedType(typeof(SystemMessage), typeDiscriminator: "system")]
 public class SystemMessage : BaseMessage
 {
     [JsonPropertyName("text")]
@@ -130,8 +137,5 @@ public class SystemMessage : BaseMessage
 }
 
 // (Tùy chọn) Heartbeat
-[JsonDerivedType(typeof(PingMessage), typeDiscriminator: "ping")]
 public class PingMessage : BaseMessage { }
-
-[JsonDerivedType(typeof(PongMessage), typeDiscriminator: "pong")]
 public class PongMessage : BaseMessage { }

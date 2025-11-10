@@ -7,11 +7,6 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace Chat.Shared;
 
-/// <summary>
-/// Cấu hình này giúp System.Text.Json tự động đăng ký
-/// tất cả các lớp con (derived types) mà chúng ta đã định nghĩa
-/// bằng [JsonDerivedType] trong file Protocol.cs.
-/// </summary>
 public class PolymorphicJsonTypeInfoResolver : DefaultJsonTypeInfoResolver
 {
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
