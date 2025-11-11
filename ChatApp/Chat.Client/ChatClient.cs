@@ -1,4 +1,5 @@
 ﻿// File: Chat.Client/ChatClient.cs
+// (Người 5 - Nguyễn Thành Nam: Lõi Client - Networking & State)
 using Chat.Shared;
 using System;
 using System.Collections.Concurrent;
@@ -8,7 +9,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Chat.Client; // <--- ĐÃ ĐỔI NAMESPACE
+namespace Chat.Client; 
 
 public class ChatClient
 {
@@ -18,9 +19,11 @@ public class ChatClient
     private readonly BlockingCollection<BaseMessage> _inbox = new();
 
     public string? Username { get; private set; }
+
     public event Action<string>? ConnectionStatusChanged;
     public event Action<BaseMessage>? MessageReceived;
 
+    // (Người 5) Hàm kết nối (UC-01)
     public async Task ConnectAsync(string host, int port, string username)
     {
         if (_client?.Connected ?? false)
@@ -35,7 +38,7 @@ public class ChatClient
             _cts = new CancellationTokenSource();
             this.Username = username;
 
-            // ✅ SỬA LỖI CS0117: Xóa "Type = ..."
+            // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
             await NetworkHelpers.SendMessageAsync(_stream, new LoginMessage { Username = username });
 
             _ = Task.Run(() => ReceiveLoopAsync(_cts.Token));
@@ -51,6 +54,7 @@ public class ChatClient
         }
     }
 
+    // (Người 5) Luồng nhận (Receiver Thread)
     private async Task ReceiveLoopAsync(CancellationToken token)
     {
         try
@@ -74,6 +78,7 @@ public class ChatClient
         }
     }
 
+    // (Người 5) Luồng xử lý (Consumer Thread)
     private void ConsumerLoopAsync(CancellationToken token)
     {
         try
@@ -91,6 +96,7 @@ public class ChatClient
         }
     }
 
+    // (Người 5) Hàm Gửi tin nhắn ra mạng
     public async Task SendMessageAsync(BaseMessage message)
     {
         if (_stream == null || !(_client?.Connected ?? false))
@@ -98,6 +104,7 @@ public class ChatClient
         await NetworkHelpers.SendMessageAsync(_stream, message);
     }
 
+    // (Người 5) Hàm Đóng kết nối (UC-06)
     public void Disconnect()
     {
         if (_cts == null) return;

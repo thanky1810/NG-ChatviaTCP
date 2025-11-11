@@ -1,12 +1,12 @@
 ﻿// File: Chat.Shared/Protocol.cs
+// (Người 1 - Vũ Trí Dũng: Định nghĩa Giao thức)
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Chat.Shared;
 
-//
-// ⚠️ SỬA LỖI: Tất cả các [JsonDerivedType] phải được đặt ở LỚP CHA
-//
+// Các [JsonDerivedType] phải được đặt ở LỚP CHA
+// để bộ giải mã đa hình (Polymorphic Resolver) hoạt động
 [JsonDerivedType(typeof(LoginMessage), typeDiscriminator: "login")]
 [JsonDerivedType(typeof(LoginOkMessage), typeDiscriminator: "login_ok")]
 [JsonDerivedType(typeof(ErrorMessage), typeDiscriminator: "error")]
@@ -22,13 +22,11 @@ namespace Chat.Shared;
 [JsonDerivedType(typeof(SystemMessage), typeDiscriminator: "system")]
 [JsonDerivedType(typeof(PingMessage), typeDiscriminator: "ping")]
 [JsonDerivedType(typeof(PongMessage), typeDiscriminator: "pong")]
-//
-// Lớp cơ sở (BaseMessage)
-//
+
+// (Người 1 - Vũ Trí Dũng: Lớp cơ sở (BaseMessage))
+// Lớp này rỗng vì thuộc tính "type" sẽ được Resolver tự động thêm vào
 public class BaseMessage
 {
-    // ✅ ĐÃ XÓA THUỘC TÍNH "TYPE" KHỎI ĐÂY
-    // Bộ giải mã (PolymorphicJsonTypeInfoResolver) sẽ tự động thêm nó
 }
 
 // --- Nhóm Xác thực / Kết nối ---
@@ -57,7 +55,6 @@ public class ErrorMessage : BaseMessage
 
 public class LogoutMessage : BaseMessage
 {
-    // Không cần thêm trường nào cho logout
 }
 
 // --- Nhóm Chat ---
@@ -69,7 +66,7 @@ public class ChatPublicMessage : BaseMessage
     [JsonPropertyName("text")]
     public string Text { get; set; }
     [JsonPropertyName("ts")]
-    public string Timestamp { get; set; } // Dùng string cho ISO-8601
+    public string Timestamp { get; set; }
 }
 
 public class ChatPrivateMessage : BaseMessage

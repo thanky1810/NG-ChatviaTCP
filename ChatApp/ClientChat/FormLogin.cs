@@ -1,4 +1,5 @@
 ﻿// File: UI.Chat/FormLogin.cs
+// (Người 6 - Cao Xuân Quyết: Logic Màn hình Login & Tích hợp UC-01)
 using Chat.Shared;
 using System;
 using System.ComponentModel;
@@ -10,27 +11,33 @@ namespace ClientChat
 {
     public partial class FormLogin : Form
     {
+        // (Người 6 & 5) Tích hợp Lõi Client (Người 5)
         private ChatClient _chatClient;
         private CancellationTokenSource? _cts;
         private TaskCompletionSource<BaseMessage>? _loginResponseTcs;
 
+        // Property để Program.cs lấy Client đã kết nối
         public ChatClient ConnectedClient => _chatClient;
 
-        // ✅ SỬA LỖI DANH SÁCH USER: Thêm property này
+        // Property để Program.cs lấy danh sách user/room ban đầu
         public LoginOkMessage? LoginOkDetails { get; private set; }
 
         public FormLogin()
         {
             InitializeComponent();
+
+            // (Người 6) Cài đặt giá trị mặc định để test
             this.txtHost.Text = "127.0.0.1";
             this.txtPort.Text = "8888";
-            this.txtUserName.Text = "UserWinForms";
+            this.txtUserName.Text = "UserWinForms"; // Đổi tên khi chạy client 2
 
+            // (Người 6 & 5) Khởi tạo và đăng ký sự kiện từ Lõi Client (Người 5)
             _chatClient = new ChatClient();
             this.btnConnect.Click += BtnConnect_Click;
             _chatClient.ConnectionStatusChanged += (status) => this.BeginInvoke((Action)(() => lblHost1.Text = status));
             _chatClient.MessageReceived += OnMessageReceived;
 
+            // (Người 6) Cài đặt UI (Validation, TabIndex...)
             this.btnConnect.TabStop = false;
             this.txtHost.TabIndex = 0;
             this.txtPort.TabIndex = 1;
@@ -46,6 +53,7 @@ namespace ClientChat
             this.txtPort.TextChanged += TxtPort_TextChanged;
         }
 
+        // (Người 6) Xử lý nút Connect (Tích hợp UC-01)
         private async void BtnConnect_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtHost.Text) ||
@@ -62,27 +70,31 @@ namespace ClientChat
 
             try
             {
+                // (Người 6 & 5) Gọi hàm Connect (Người 5)
                 await _chatClient.ConnectAsync(
                     txtHost.Text.Trim(),
                     int.Parse(txtPort.Text.Trim()),
                     txtUserName.Text.Trim()
                 );
 
+                // (Người 6) Chờ phản hồi LoginOk hoặc Error từ Server
                 var responseTask = _loginResponseTcs.Task;
                 if (await Task.WhenAny(responseTask, Task.Delay(5000, _cts.Token)) != responseTask)
                 {
                     throw new TimeoutException("Server không phản hồi.");
                 }
 
+                // (Người 6) Xử lý phản hồi
                 var response = await responseTask;
                 if (response is LoginOkMessage)
                 {
+                    // Đăng nhập thành công, đóng FormLogin
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
                 else if (response is ErrorMessage err)
                 {
-                    throw new Exception(err.Message);
+                    throw new Exception(err.Message); // Ném lỗi (vd: trùng tên)
                 }
                 else
                 {
@@ -91,6 +103,7 @@ namespace ClientChat
             }
             catch (Exception ex)
             {
+                // (Người 6) Hiển thị lỗi và ngắt kết nối
                 MessageBox.Show($"Đăng nhập thất bại: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 _chatClient.Disconnect();
                 _cts?.Cancel();
@@ -101,12 +114,13 @@ namespace ClientChat
             }
         }
 
+        // (Người 6 & 5) Xử lý message nhận được từ Lõi Client (Người 5)
         private void OnMessageReceived(BaseMessage message)
         {
-            // ✅ SỬA LỖI DANH SÁCH USER: Lưu lại tin nhắn LoginOk
+            // Chỉ xử lý các message liên quan đến Login
             if (message is LoginOkMessage lok)
             {
-                this.LoginOkDetails = lok;
+                this.LoginOkDetails = lok; // Lưu lại data cho FormChat
                 _loginResponseTcs?.TrySetResult(lok);
             }
             else if (message is ErrorMessage err)
@@ -115,6 +129,7 @@ namespace ClientChat
             }
         }
 
+        // (Người 6 & 5) Dọn dẹp
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _chatClient.MessageReceived -= OnMessageReceived;
@@ -126,7 +141,7 @@ namespace ClientChat
         public int Port => int.TryParse(txtPort.Text.Trim(), out int p) ? p : 0;
         public string UserName => txtUserName.Text.Trim();
 
-        #region (Các hàm UI gốc của bạn - Giữ nguyên)
+        #region (Người 6 - Các hàm UI phụ trợ)
         private void FormLogin_Load(object sender, EventArgs e) { }
         private void FormLogin_Shown(object sender, EventArgs e)
         {
