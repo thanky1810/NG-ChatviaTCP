@@ -1,41 +1,36 @@
-﻿// File: UI.Chat/Program.cs
-using Chat.Client;
-using Chat.Shared; // ✅ Thêm
+﻿// File: Chat.Client/Program.cs
+using Chat.Shared;
 using System;
 using System.Windows.Forms;
 
-namespace Chat.Client
+namespace Chat.Client; // <-- Namespace của Project này
+
+internal static class Program
 {
-    internal static class Program
+    [STAThread]
+    static void Main()
     {
-        [STAThread]
-        static void Main()
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
+        // (Người 6) Vòng lặp `while(true)` cho phép tính năng Logout
+        while (true)
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
-            // ✅ SỬA LỖI LOGOUT: Thêm vòng lặp
-            while (true)
+            // (Người 6) Hiển thị FormLogin (UC-01)
+            using (var login = new FormLogin())
             {
-                using (var login = new FormLogin())
+                if (login.ShowDialog() != DialogResult.OK)
+                    return; // Nếu người dùng đóng FormLogin, thoát hẳn
+
+                // (Người 4 & 6) Truyền Client đã kết nối và danh sách User
+                var chat = new Chat_TCP_Client
                 {
-                    // Hiển thị modal; chỉ tiếp tục khi người dùng nhấn CONNECT
-                    if (login.ShowDialog() != DialogResult.OK)
-                        return; // Nếu người dùng đóng FormLogin, thoát hẳn
+                    UserName = login.UserName,
+                    Client = login.ConnectedClient,
+                    InitialLoginOk = login.LoginOkDetails
+                };
 
-                    // ✅ SỬA LỖI DANH SÁCH USER: Truyền LoginOkDetails
-                    var chat = new Chat_TCP_Client
-                    {
-                        UserName = login.UserName,
-                        Client = login.ConnectedClient,
-                        InitialLoginOk = login.LoginOkDetails // Lấy danh sách ban đầu
-                    };
-
-                    Application.Run(chat); // Chạy FormChat
-
-                    // Sau khi FormChat (chat) bị đóng (do Logout),
-                    // vòng lặp 'while' sẽ chạy lại và hiển thị FormLogin mới
-                }
+                Application.Run(chat); // Chạy FormChat
             }
         }
     }

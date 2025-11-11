@@ -12,7 +12,7 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        // ✅ SỬA: Khởi động Form Giao diện
+        // Khởi động Giao diện Quản lý (Dashboard) của Server
         Application.Run(new ServerForm());
     }
 }

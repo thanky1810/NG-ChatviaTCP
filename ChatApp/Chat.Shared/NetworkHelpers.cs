@@ -1,4 +1,5 @@
 ﻿// File: Chat.Shared/NetworkHelpers.cs
+// (Người 1 - Vũ Trí Dũng: Xử lý Đóng gói (Framing) và (De)Serialization)
 using System;
 using System.IO;
 using System.Net.Sockets;
@@ -9,7 +10,7 @@ namespace Chat.Shared;
 
 public static class NetworkHelpers
 {
-    // Cấu hình để nhận diện các lớp con từ lớp BaseMessage
+    // Cấu hình Serializer để dùng chung
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         TypeInfoResolver = new PolymorphicJsonTypeInfoResolver()
@@ -18,13 +19,9 @@ public static class NetworkHelpers
     // --- GỬI tin (Client và Server đều dùng) ---
     public static async Task SendMessageAsync(NetworkStream stream, BaseMessage message)
     {
-        // 1. Serialize message thành JSON (UTF-8)
-        // ✅ SỬA LỖI: Bỏ , message.GetType()
-        // Bằng cách chỉ dùng (message, JsonOptions), chúng ta buộc nó dùng
-        // kiểu static 'BaseMessage', điều này sẽ kích hoạt PolymorphicJsonTypeInfoResolver
-        // và thêm trường "type": "login" một cách chính xác.
+        // 1. Serialize message (dùng BaseMessage để kích hoạt đa hình)
         byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
-        
+
         // 2. Lấy độ dài của payload
         int length = jsonBytes.Length;
 
@@ -43,7 +40,6 @@ public static class NetworkHelpers
     }
 
     // --- NHẬN tin (Client và Server đều dùng) ---
-    // (Phần này đã đúng, giữ nguyên)
     public static async Task<BaseMessage> ReadMessageAsync(NetworkStream stream)
     {
         byte[] lengthBuffer = new byte[4];
@@ -60,9 +56,9 @@ public static class NetworkHelpers
         }
         int length = BitConverter.ToInt32(lengthBuffer, 0);
 
-        if (length > 1_048_576)
+        if (length > 1_048_576) // Giới hạn 1MB
             throw new IOException($"Payload quá lớn: {length} bytes.");
-        if (length < 2)
+        if (length < 2) // Tối thiểu {}
             throw new IOException($"Payload không hợp lệ: {length} bytes.");
 
         // 3. Đọc chính xác N byte (Payload)
@@ -71,7 +67,7 @@ public static class NetworkHelpers
         if (bytesRead < length)
             throw new IOException("Socket bị đóng đột ngột khi đang đọc payload.");
 
-        // 4. Deserialize payload
+        // 4. Deserialize payload (dùng BaseMessage để kích hoạt đa hình)
         var message = JsonSerializer.Deserialize<BaseMessage>(payloadBuffer, JsonOptions);
 
         if (message == null)
