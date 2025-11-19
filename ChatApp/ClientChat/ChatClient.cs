@@ -1,5 +1,4 @@
 ﻿// File: UI.Chat/ChatClient.cs
-// (Người 5 - Nguyễn Thành Nam: Lõi Client - Networking & State)
 using Chat.Shared;
 using System;
 using System.Collections.Concurrent;
@@ -9,28 +8,22 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ClientChat;
+namespace ClientChat; // (Hoặc namespace Chat.Client)
 
 public class ChatClient
 {
     private TcpClient? _client;
     private NetworkStream? _stream;
     private CancellationTokenSource? _cts;
-
-    // (Người 5) Hàng đợi (Queue) thread-safe để luồng mạng giao tiếp với luồng UI
     private readonly BlockingCollection<BaseMessage> _inbox = new();
 
     public string? Username { get; private set; }
-
-    // (Người 5) Sự kiện (Events) để báo cho UI (FormLogin, FormChat)
     public event Action<string>? ConnectionStatusChanged;
     public event Action<BaseMessage>? MessageReceived;
 
-    // (Người 5) Hàm kết nối (UC-01)
     public async Task ConnectAsync(string host, int port, string username)
     {
-        if (_client?.Connected ?? false)
-            return;
+        if (_client?.Connected ?? false) return;
 
         try
         {
@@ -41,12 +34,13 @@ public class ChatClient
             _cts = new CancellationTokenSource();
             this.Username = username;
 
-            // (Người 5 & 1) Gửi message Login (đã đóng gói)
             await NetworkHelpers.SendMessageAsync(_stream, new LoginMessage { Username = username });
 
-            // (Người 5) Khởi chạy 2 luồng nền (Task)
-            _ = Task.Run(() => ReceiveLoopAsync(_cts.Token)); // Luồng nhận
-            _ = Task.Run(() => ConsumerLoopAsync(_cts.Token)); // Luồng xử lý hàng đợi
+            _ = Task.Run(() => ReceiveLoopAsync(_cts.Token));
+            _ = Task.Run(() => ConsumerLoopAsync(_cts.Token));
+
+            // ✅ HEARTBEAT: Bắt đầu luồng gửi Ping tự động
+            _ = Task.Run(() => PingLoopAsync(_cts.Token));
 
             ConnectionStatusChanged?.Invoke("Đã kết nối, chờ xác thực...");
         }
@@ -54,12 +48,33 @@ public class ChatClient
         {
             ConnectionStatusChanged?.Invoke($"Kết nối thất bại: {ex.Message}");
             Disconnect();
-            throw; // Ném lỗi ra để FormLogin (Người 6) bắt được
+            throw;
         }
     }
 
-    // (Người 5) Luồng nhận (Receiver Thread)
-    // Chỉ đọc socket, giải mã (Framing) và bỏ vào hàng đợi _inbox
+    // ✅ HEARTBEAT: Luồng Ping (gửi mỗi 30s)
+    private async Task PingLoopAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested && _stream != null)
+        {
+            try
+            {
+                // Chờ 30 giây
+                await Task.Delay(30000, token);
+
+                // Gửi Ping
+                await NetworkHelpers.SendMessageAsync(_stream, new PingMessage());
+            }
+            catch (OperationCanceledException) { break; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PingLoop Error] {ex.Message}");
+                // Nếu Ping lỗi, có thể coi là mất kết nối
+                break;
+            }
+        }
+    }
+
     private async Task ReceiveLoopAsync(CancellationToken token)
     {
         try
@@ -71,7 +86,7 @@ public class ChatClient
             }
         }
         catch (OperationCanceledException) { }
-        catch (IOException ex) // Lỗi socket (server sập, mạng rớt)
+        catch (IOException ex)
         {
             ConnectionStatusChanged?.Invoke($"Mất kết nối: {ex.Message}");
             _inbox.CompleteAdding();
@@ -83,8 +98,6 @@ public class ChatClient
         }
     }
 
-    // (Người 5) Luồng xử lý (Consumer Thread)
-    // Lấy message từ hàng đợi và bắn sự kiện MessageReceived cho UI
     private void ConsumerLoopAsync(CancellationToken token)
     {
         try
@@ -102,24 +115,19 @@ public class ChatClient
         }
     }
 
-    // (Người 5) Hàm Gửi tin nhắn ra mạng
     public async Task SendMessageAsync(BaseMessage message)
     {
         if (_stream == null || !(_client?.Connected ?? false))
             throw new IOException("Chưa kết nối đến server.");
-
-        // (Người 5 & 1) Dùng helper để đóng gói và gửi
         await NetworkHelpers.SendMessageAsync(_stream, message);
     }
 
-    // (Người 5) Hàm Đóng kết nối (UC-06)
     public void Disconnect()
     {
         if (_cts == null) return;
-
         try
         {
-            _cts?.Cancel(); // Yêu cầu 2 luồng nền dừng lại
+            _cts?.Cancel();
             _stream?.Close();
             _client?.Close();
         }

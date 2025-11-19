@@ -1,16 +1,11 @@
-﻿namespace Chat.Client
+﻿// File: UI.Chat/FormChat.Designer.cs
+// (Và Chat.Client/FormChat.Designer.cs)
+namespace Chat.Client
 {
     partial class Chat_TCP_Client
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -22,10 +17,6 @@
 
         #region Windows Form Designer generated code
 
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             this.pnlSidebar = new System.Windows.Forms.Panel();
@@ -42,6 +33,7 @@
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.lblNameRoom = new System.Windows.Forms.Label();
             this.btnLeave = new System.Windows.Forms.Button();
+            this.btnPing = new System.Windows.Forms.Button(); // ✅ THÊM NÚT PING
             this.btnSend = new System.Windows.Forms.Button();
             this.txtMessInput = new System.Windows.Forms.TextBox();
             this.btnLogOut = new System.Windows.Forms.Button();
@@ -196,6 +188,7 @@
             this.pnlHeader.BackColor = System.Drawing.SystemColors.HotTrack;
             this.pnlHeader.Controls.Add(this.lblNameRoom);
             this.pnlHeader.Controls.Add(this.btnLeave);
+            this.pnlHeader.Controls.Add(this.btnPing); // ✅ THÊM
             this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlHeader.Location = new System.Drawing.Point(0, 0);
             this.pnlHeader.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -226,6 +219,19 @@
             this.btnLeave.Text = "Leave";
             this.btnLeave.UseVisualStyleBackColor = false;
             this.btnLeave.Click += new System.EventHandler(this.btnLeave_Click);
+            // 
+            // btnPing (Cấu hình nút Ping)
+            // 
+            this.btnPing.BackColor = System.Drawing.Color.Orange;
+            this.btnPing.ForeColor = System.Drawing.Color.White;
+            this.btnPing.Location = new System.Drawing.Point(490, 7); // Cạnh nút Leave
+            this.btnPing.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnPing.Name = "btnPing";
+            this.btnPing.Size = new System.Drawing.Size(67, 31);
+            this.btnPing.TabIndex = 5;
+            this.btnPing.Text = "Ping";
+            this.btnPing.UseVisualStyleBackColor = false;
+            this.btnPing.Click += new System.EventHandler(this.btnPing_Click);
             // 
             // btnSend
             // 
@@ -310,6 +316,6 @@
         private System.Windows.Forms.Button btnCreate;
         private System.Windows.Forms.Button btnJoin;
         private System.Windows.Forms.RichTextBox rtbMessList;
+        private System.Windows.Forms.Button btnPing; // ✅ BIẾN NÀY
     }
 }
-

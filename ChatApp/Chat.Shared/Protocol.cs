@@ -1,12 +1,10 @@
 ﻿// File: Chat.Shared/Protocol.cs
-// (Người 1 - Vũ Trí Dũng: Định nghĩa Giao thức)
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Chat.Shared;
 
 // Các [JsonDerivedType] phải được đặt ở LỚP CHA
-// để bộ giải mã đa hình (Polymorphic Resolver) hoạt động
 [JsonDerivedType(typeof(LoginMessage), typeDiscriminator: "login")]
 [JsonDerivedType(typeof(LoginOkMessage), typeDiscriminator: "login_ok")]
 [JsonDerivedType(typeof(ErrorMessage), typeDiscriminator: "error")]
@@ -20,17 +18,16 @@ namespace Chat.Shared;
 [JsonDerivedType(typeof(UserListMessage), typeDiscriminator: "user_list")]
 [JsonDerivedType(typeof(RoomListMessage), typeDiscriminator: "room_list")]
 [JsonDerivedType(typeof(SystemMessage), typeDiscriminator: "system")]
+// ✅ THÊM 2 DÒNG NÀY
 [JsonDerivedType(typeof(PingMessage), typeDiscriminator: "ping")]
 [JsonDerivedType(typeof(PongMessage), typeDiscriminator: "pong")]
 
-// (Người 1 - Vũ Trí Dũng: Lớp cơ sở (BaseMessage))
-// Lớp này rỗng vì thuộc tính "type" sẽ được Resolver tự động thêm vào
 public class BaseMessage
 {
+    // Không có thuộc tính Type ở đây (đã sửa lỗi trước đó)
 }
 
 // --- Nhóm Xác thực / Kết nối ---
-
 public class LoginMessage : BaseMessage
 {
     [JsonPropertyName("username")]
@@ -53,12 +50,9 @@ public class ErrorMessage : BaseMessage
     public string Message { get; set; }
 }
 
-public class LogoutMessage : BaseMessage
-{
-}
+public class LogoutMessage : BaseMessage { }
 
 // --- Nhóm Chat ---
-
 public class ChatPublicMessage : BaseMessage
 {
     [JsonPropertyName("from")]
@@ -94,7 +88,6 @@ public class ChatRoomMessage : BaseMessage
 }
 
 // --- Nhóm Phòng (Rooms) ---
-
 public class CreateRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
@@ -114,7 +107,6 @@ public class LeaveRoomMessage : BaseMessage
 }
 
 // --- Nhóm Danh sách & Hệ thống ---
-
 public class UserListMessage : BaseMessage
 {
     [JsonPropertyName("users")]
@@ -133,6 +125,6 @@ public class SystemMessage : BaseMessage
     public string Text { get; set; }
 }
 
-// (Tùy chọn) Heartbeat
+// ✅ THÊM 2 LỚP NÀY
 public class PingMessage : BaseMessage { }
 public class PongMessage : BaseMessage { }
