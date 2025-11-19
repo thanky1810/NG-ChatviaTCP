@@ -1,6 +1,5 @@
-﻿// File: Chat.Client/FormChat.cs
-// (Người 4 - Nguyễn Thị Hoài Linh: Logic Màn hình Chat chính)
-// (Người 6 - Cao Xuân Quyết: Tích hợp Gửi tin, Rooms, Logout)
+﻿// File: UI.Chat/FormChat.cs
+using Chat.Client;
 using Chat.Shared;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace Chat.Client; // <-- Namespace của Project này
+namespace Chat.Client; // (Hoặc Chat.Client)
 
 public partial class Chat_TCP_Client : Form
 {
@@ -30,7 +29,6 @@ public partial class Chat_TCP_Client : Form
     private ChatContext _currentContext = ChatContext.Public;
     private string _currentContextTarget = "public";
 
-    // (Người 4) Cải tiến: Bộ nhớ đệm (Dictionary) để lưu lịch sử chat
     private Dictionary<string, string> _chatHistories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     public Chat_TCP_Client()
@@ -69,7 +67,6 @@ public partial class Chat_TCP_Client : Form
             lboxRooms.Items.Add(room);
     }
 
-    // (Người 4) Xử lý message nhận được
     private void ProcessMessage(BaseMessage message)
     {
         if (this.InvokeRequired)
@@ -85,6 +82,11 @@ public partial class Chat_TCP_Client : Form
 
         switch (message)
         {
+            // ✅ HEARTBEAT: Nhận Pong từ Server
+            case PongMessage:
+                AppendChatMessage(DateTime.Now.ToString("HH:mm:ss"), "Server", "PONG! (Kết nối tốt)", false, Color.Green);
+                return;
+
             case ChatPublicMessage chat:
                 if (chat.From == this.UserName) return;
                 messageContext = "public";
@@ -122,7 +124,6 @@ public partial class Chat_TCP_Client : Form
         }
         else if (!string.IsNullOrEmpty(messageContext))
         {
-            // (Người 4) Cải tiến: Lưu vào lịch sử (dictionary)
             string oldRtf = _chatHistories.ContainsKey(messageContext) ? _chatHistories[messageContext] : "";
             using (var tempRtb = new RichTextBox())
             {
@@ -142,7 +143,21 @@ public partial class Chat_TCP_Client : Form
         }
     }
 
-    // (Người 6) Tích hợp Gửi tin
+    // ✅ NÚT PING: Gửi Ping thủ công
+    private async void btnPing_Click(object sender, EventArgs e)
+    {
+        if (Client == null) return;
+        AppendChatMessage(DateTime.Now.ToString("HH:mm:ss"), "Hệ thống", "Đang gửi Ping...", false, Color.Gray);
+        try
+        {
+            await Client.SendMessageAsync(new PingMessage());
+        }
+        catch
+        {
+            AppendChatMessage(DateTime.Now.ToString("HH:mm:ss"), "Lỗi", "Ping thất bại.", false, Color.Red);
+        }
+    }
+
     private async void btnSend_Click(object sender, EventArgs e)
     {
         string text = txtMessInput.Text;
@@ -152,22 +167,18 @@ public partial class Chat_TCP_Client : Form
         switch (_currentContext)
         {
             case ChatContext.Public:
-                // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
                 message = new ChatPublicMessage { Text = text };
                 break;
             case ChatContext.Private:
-                // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
                 message = new ChatPrivateMessage { To = _currentContextTarget, Text = text };
                 break;
             case ChatContext.Room:
-                // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
                 message = new ChatRoomMessage { Room = _currentContextTarget, Text = text };
                 break;
             default:
                 return;
         }
 
-        // (Người 4) Hiển thị tin nhắn của chính mình
         AppendChatMessage(DateTime.UtcNow.ToString("o"), this.UserName, text, true);
 
         try
@@ -181,7 +192,6 @@ public partial class Chat_TCP_Client : Form
         }
     }
 
-    // (Người 6) Tích hợp Tạo phòng
     private async void btnCreate_Click(object sender, EventArgs e)
     {
         using (var dlg = new FormCreate())
@@ -190,13 +200,11 @@ public partial class Chat_TCP_Client : Form
             {
                 var roomName = dlg.RoomName;
                 if (string.IsNullOrEmpty(roomName)) return;
-                // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
                 await Client.SendMessageAsync(new CreateRoomMessage { Room = roomName });
             }
         }
     }
 
-    // (Người 6) Tích hợp Vào phòng
     private async void btnJoin_Click(object sender, EventArgs e)
     {
         if (lboxRooms.SelectedItem == null)
@@ -205,12 +213,10 @@ public partial class Chat_TCP_Client : Form
             return;
         }
         var roomName = lboxRooms.SelectedItem.ToString();
-        // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
         await Client.SendMessageAsync(new JoinRoomMessage { Room = roomName });
         UpdateChatContext(ChatContext.Room, roomName);
     }
 
-    // (Người 4) Xử lý Double-click user
     private void lboxUsers_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (lboxUsers.SelectedItem == null) return;
@@ -218,7 +224,6 @@ public partial class Chat_TCP_Client : Form
         UpdateChatContext(ChatContext.Private, username);
     }
 
-    // (Người 6) Tích hợp Rời phòng
     private async void btnLeave_Click(object sender, EventArgs e)
     {
         if (_currentContext != ChatContext.Room)
@@ -227,12 +232,10 @@ public partial class Chat_TCP_Client : Form
             return;
         }
 
-        // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
         await Client.SendMessageAsync(new LeaveRoomMessage { Room = _currentContextTarget });
         UpdateChatContext(ChatContext.Public, "public");
     }
 
-    // (Người 6) Tích hợp Logout
     private async void btnLogOut_Click(object sender, EventArgs e)
     {
         var confirm = MessageBox.Show("Bạn có chắc muốn đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
@@ -240,7 +243,6 @@ public partial class Chat_TCP_Client : Form
 
         try
         {
-            // ✅ SỬA LỖI CS0117: Đã xóa "Type = ..."
             await Client.SendMessageAsync(new LogoutMessage());
         }
         catch { }
@@ -250,7 +252,6 @@ public partial class Chat_TCP_Client : Form
         this.Close();
     }
 
-    // (Người 4) Cải tiến: Hàm LƯU và TẢI lịch sử chat
     private void UpdateChatContext(ChatContext context, string target)
     {
         if (!string.IsNullOrEmpty(_currentContextTarget))
@@ -289,7 +290,6 @@ public partial class Chat_TCP_Client : Form
         rtbMessList.ScrollToCaret();
     }
 
-    // (Người 4) Hàm helper để thêm tin nhắn vào UI
     private void AppendChatMessage(string timeStr, string sender, string message, bool isSelf, Color? senderColor = null)
     {
         string time = DateTime.TryParse(timeStr, out var dt)
@@ -314,7 +314,7 @@ public partial class Chat_TCP_Client : Form
         }
     }
 
-    #region (Người 4 & 6 - Các hàm UI phụ trợ)
+    #region (Các hàm UI gốc)
     private void Chat_TCP_Client_FormClosing(object sender, FormClosingEventArgs e)
     {
         if (Client?.Username != null)
@@ -338,12 +338,12 @@ public partial class Chat_TCP_Client : Form
     }
     private void lboxRooms_SelectedIndexChanged(object sender, EventArgs e) { }
     private void rtbMessList_TextChanged(object sender, EventArgs e) { }
-    private void panel1_Paint(object sender, EventArgs e) { }
+    private void panel1_Paint(object sender, PaintEventArgs e) { }
     private void Connect_Click(object sender, EventArgs e) { }
     private void label1_Click(object sender, EventArgs e) { }
     private void txtMessageInput_TextChanged(object sender, EventArgs e) { }
     private void pnlMessageList_Paint(object sender, PaintEventArgs e) { }
     private void pnlChatFame_Paint(object sender, PaintEventArgs e) { }
-    private void pnlChatHeader_Paint(object sender, EventArgs e) { }
+    private void pnlChatHeader_Paint(object sender, PaintEventArgs e) { }
     #endregion
 }
