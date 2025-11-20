@@ -4,7 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace Chat.Shared;
 
-// Các [JsonDerivedType] phải được đặt ở LỚP CHA
 [JsonDerivedType(typeof(LoginMessage), typeDiscriminator: "login")]
 [JsonDerivedType(typeof(LoginOkMessage), typeDiscriminator: "login_ok")]
 [JsonDerivedType(typeof(ErrorMessage), typeDiscriminator: "error")]
@@ -18,14 +17,10 @@ namespace Chat.Shared;
 [JsonDerivedType(typeof(UserListMessage), typeDiscriminator: "user_list")]
 [JsonDerivedType(typeof(RoomListMessage), typeDiscriminator: "room_list")]
 [JsonDerivedType(typeof(SystemMessage), typeDiscriminator: "system")]
-// ✅ THÊM 2 DÒNG NÀY
 [JsonDerivedType(typeof(PingMessage), typeDiscriminator: "ping")]
 [JsonDerivedType(typeof(PongMessage), typeDiscriminator: "pong")]
 
-public class BaseMessage
-{
-    // Không có thuộc tính Type ở đây (đã sửa lỗi trước đó)
-}
+public class BaseMessage { }
 
 // --- Nhóm Xác thực / Kết nối ---
 public class LoginMessage : BaseMessage
@@ -92,12 +87,20 @@ public class CreateRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
     public string Room { get; set; }
+
+    // ✅ THÊM
+    [JsonPropertyName("password")]
+    public string? Password { get; set; }
 }
 
 public class JoinRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
     public string Room { get; set; }
+
+    // ✅ THÊM
+    [JsonPropertyName("password")]
+    public string? Password { get; set; }
 }
 
 public class LeaveRoomMessage : BaseMessage
@@ -125,6 +128,5 @@ public class SystemMessage : BaseMessage
     public string Text { get; set; }
 }
 
-// ✅ THÊM 2 LỚP NÀY
 public class PingMessage : BaseMessage { }
 public class PongMessage : BaseMessage { }
