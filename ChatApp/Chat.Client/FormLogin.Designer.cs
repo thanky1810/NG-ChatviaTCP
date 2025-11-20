@@ -2,197 +2,140 @@
 {
     partial class FormLogin
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
-
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
+            if (disposing && (components != null)) components.Dispose();
             base.Dispose(disposing);
         }
 
         #region Windows Form Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
-            panelLogin = new Panel();
-            lblUserName1 = new Label();
-            lblPort1 = new Label();
-            lblHost1 = new Label();
-            btnConnect = new Button();
-            txtUserName = new TextBox();
-            lblUserName = new Label();
-            txtPort = new TextBox();
-            lblPort = new Label();
-            txtHost = new TextBox();
-            lblHost = new Label();
-            lblLogin = new Label();
-            panelLogin.SuspendLayout();
-            SuspendLayout();
-            // 
+            this.panelLogin = new System.Windows.Forms.Panel();
+            this.lblUserName1 = new System.Windows.Forms.Label();
+            this.lblPort1 = new System.Windows.Forms.Label();
+            this.lblHost1 = new System.Windows.Forms.Label();
+            this.btnConnect = new System.Windows.Forms.Button();
+            this.txtUserName = new System.Windows.Forms.TextBox();
+            this.lblUserName = new System.Windows.Forms.Label();
+            this.txtPort = new System.Windows.Forms.TextBox();
+            this.lblPort = new System.Windows.Forms.Label();
+            this.txtHost = new System.Windows.Forms.TextBox();
+            this.lblHost = new System.Windows.Forms.Label();
+            this.lblLogin = new System.Windows.Forms.Label();
+            this.panelLogin.SuspendLayout();
+            this.SuspendLayout();
             // panelLogin
-            // 
-            panelLogin.BackColor = SystemColors.Control;
-            panelLogin.Controls.Add(lblUserName1);
-            panelLogin.Controls.Add(lblPort1);
-            panelLogin.Controls.Add(lblHost1);
-            panelLogin.Controls.Add(btnConnect);
-            panelLogin.Controls.Add(txtUserName);
-            panelLogin.Controls.Add(lblUserName);
-            panelLogin.Controls.Add(txtPort);
-            panelLogin.Controls.Add(lblPort);
-            panelLogin.Controls.Add(txtHost);
-            panelLogin.Controls.Add(lblHost);
-            panelLogin.Dock = DockStyle.Bottom;
-            panelLogin.Location = new Point(0, 134);
-            panelLogin.Margin = new Padding(3, 4, 3, 4);
-            panelLogin.Name = "panelLogin";
-            panelLogin.Size = new Size(800, 428);
-            panelLogin.TabIndex = 0;
-            panelLogin.Paint += panelLogin_Paint;
-            // 
+            this.panelLogin.BackColor = System.Drawing.SystemColors.Control;
+            this.panelLogin.Controls.Add(this.lblUserName1);
+            this.panelLogin.Controls.Add(this.lblPort1);
+            this.panelLogin.Controls.Add(this.lblHost1);
+            this.panelLogin.Controls.Add(this.btnConnect);
+            this.panelLogin.Controls.Add(this.txtUserName);
+            this.panelLogin.Controls.Add(this.lblUserName);
+            this.panelLogin.Controls.Add(this.txtPort);
+            this.panelLogin.Controls.Add(this.lblPort);
+            this.panelLogin.Controls.Add(this.txtHost);
+            this.panelLogin.Controls.Add(this.lblHost);
+            this.panelLogin.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelLogin.Location = new System.Drawing.Point(0, 134);
+            this.panelLogin.Name = "panelLogin";
+            this.panelLogin.Size = new System.Drawing.Size(800, 428);
+            this.panelLogin.TabIndex = 0;
             // lblUserName1
-            // 
-            lblUserName1.Location = new Point(613, 185);
-            lblUserName1.Name = "lblUserName1";
-            lblUserName1.Size = new Size(139, 48);
-            lblUserName1.TabIndex = 4;
-            lblUserName1.Text = "Hãy nhập tên của bạn (tối đa 15 ký tự)";
-            // 
+            this.lblUserName1.Location = new System.Drawing.Point(613, 185);
+            this.lblUserName1.Name = "lblUserName1";
+            this.lblUserName1.Size = new System.Drawing.Size(139, 48);
+            this.lblUserName1.TabIndex = 4;
+            this.lblUserName1.Text = "Tên hiển thị (max 15 ký tự)";
             // lblPort1
-            // 
-            lblPort1.AutoSize = true;
-            lblPort1.Location = new Point(613, 139);
-            lblPort1.Name = "lblPort1";
-            lblPort1.Size = new Size(68, 20);
-            lblPort1.TabIndex = 4;
-            lblPort1.Text = "VD: 8080";
-            // 
+            this.lblPort1.AutoSize = true;
+            this.lblPort1.Location = new System.Drawing.Point(613, 139);
+            this.lblPort1.Name = "lblPort1";
+            this.lblPort1.Size = new System.Drawing.Size(68, 20);
+            this.lblPort1.TabIndex = 4;
+            this.lblPort1.Text = "VD: 8888";
             // lblHost1
-            // 
-            lblHost1.AutoSize = true;
-            lblHost1.Location = new Point(613, 88);
-            lblHost1.Name = "lblHost1";
-            lblHost1.Size = new Size(109, 20);
-            lblHost1.TabIndex = 4;
-            lblHost1.Text = "VD: 192.168.3.2";
-            // 
+            this.lblHost1.AutoSize = true;
+            this.lblHost1.Location = new System.Drawing.Point(613, 88);
+            this.lblHost1.Name = "lblHost1";
+            this.lblHost1.Size = new System.Drawing.Size(109, 20);
+            this.lblHost1.TabIndex = 4;
+            this.lblHost1.Text = "VD: 127.0.0.1";
             // btnConnect
-            // 
-            btnConnect.BackColor = Color.SpringGreen;
-            btnConnect.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btnConnect.Location = new Point(325, 274);
-            btnConnect.Margin = new Padding(3, 4, 3, 4);
-            btnConnect.Name = "btnConnect";
-            btnConnect.Size = new Size(204, 49);
-            btnConnect.TabIndex = 3;
-            btnConnect.Text = "CONNECT";
-            btnConnect.UseVisualStyleBackColor = false;
-            // 
+            this.btnConnect.BackColor = System.Drawing.Color.SpringGreen;
+            this.btnConnect.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold);
+            this.btnConnect.Location = new System.Drawing.Point(325, 274);
+            this.btnConnect.Name = "btnConnect";
+            this.btnConnect.Size = new System.Drawing.Size(204, 49);
+            this.btnConnect.TabIndex = 3;
+            this.btnConnect.Text = "CONNECT";
+            this.btnConnect.UseVisualStyleBackColor = false;
             // txtUserName
-            // 
-            txtUserName.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            txtUserName.Location = new Point(325, 185);
-            txtUserName.Margin = new Padding(3, 4, 3, 4);
-            txtUserName.Name = "txtUserName";
-            txtUserName.Size = new Size(273, 30);
-            txtUserName.TabIndex = 2;
-            // 
+            this.txtUserName.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.txtUserName.Location = new System.Drawing.Point(325, 185);
+            this.txtUserName.Name = "txtUserName";
+            this.txtUserName.Size = new System.Drawing.Size(273, 30);
+            this.txtUserName.TabIndex = 2;
             // lblUserName
-            // 
-            lblUserName.AutoSize = true;
-            lblUserName.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblUserName.Location = new Point(118, 194);
-            lblUserName.Name = "lblUserName";
-            lblUserName.Size = new Size(145, 25);
-            lblUserName.TabIndex = 0;
-            lblUserName.Text = "USER NAME:";
-            lblUserName.Click += label2_Click;
-            // 
+            this.lblUserName.AutoSize = true;
+            this.lblUserName.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold);
+            this.lblUserName.Location = new System.Drawing.Point(118, 194);
+            this.lblUserName.Name = "lblUserName";
+            this.lblUserName.Size = new System.Drawing.Size(145, 25);
+            this.lblUserName.TabIndex = 0;
+            this.lblUserName.Text = "USER NAME:";
             // txtPort
-            // 
-            txtPort.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            txtPort.Location = new Point(325, 130);
-            txtPort.Margin = new Padding(3, 4, 3, 4);
-            txtPort.Name = "txtPort";
-            txtPort.Size = new Size(273, 30);
-            txtPort.TabIndex = 1;
-            // 
+            this.txtPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.txtPort.Location = new System.Drawing.Point(325, 130);
+            this.txtPort.Name = "txtPort";
+            this.txtPort.Size = new System.Drawing.Size(273, 30);
+            this.txtPort.TabIndex = 1;
             // lblPort
-            // 
-            lblPort.AutoSize = true;
-            lblPort.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblPort.Location = new Point(118, 139);
-            lblPort.Name = "lblPort";
-            lblPort.Size = new Size(78, 25);
-            lblPort.TabIndex = 0;
-            lblPort.Text = "PORT:";
-            lblPort.Click += label2_Click;
-            // 
+            this.lblPort.AutoSize = true;
+            this.lblPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold);
+            this.lblPort.Location = new System.Drawing.Point(118, 139);
+            this.lblPort.Name = "lblPort";
+            this.lblPort.Size = new System.Drawing.Size(78, 25);
+            this.lblPort.TabIndex = 0;
+            this.lblPort.Text = "PORT:";
             // txtHost
-            // 
-            txtHost.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            txtHost.Location = new Point(325, 79);
-            txtHost.Margin = new Padding(3, 4, 3, 4);
-            txtHost.Name = "txtHost";
-            txtHost.Size = new Size(273, 30);
-            txtHost.TabIndex = 0;
-            txtHost.TextChanged += txtHost_TextChanged;
-            // 
+            this.txtHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.txtHost.Location = new System.Drawing.Point(325, 79);
+            this.txtHost.Name = "txtHost";
+            this.txtHost.Size = new System.Drawing.Size(273, 30);
+            this.txtHost.TabIndex = 0;
             // lblHost
-            // 
-            lblHost.AutoSize = true;
-            lblHost.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblHost.Location = new Point(118, 88);
-            lblHost.Name = "lblHost";
-            lblHost.Size = new Size(80, 25);
-            lblHost.TabIndex = 0;
-            lblHost.Text = "HOST:";
-            lblHost.Click += label2_Click;
-            // 
+            this.lblHost.AutoSize = true;
+            this.lblHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold);
+            this.lblHost.Location = new System.Drawing.Point(118, 88);
+            this.lblHost.Name = "lblHost";
+            this.lblHost.Size = new System.Drawing.Size(80, 25);
+            this.lblHost.TabIndex = 0;
+            this.lblHost.Text = "HOST:";
             // lblLogin
-            // 
-            lblLogin.Font = new Font("Microsoft Sans Serif", 19.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblLogin.ForeColor = SystemColors.Control;
-            lblLogin.Location = new Point(0, -1);
-            lblLogin.Name = "lblLogin";
-            lblLogin.Size = new Size(800, 132);
-            lblLogin.TabIndex = 1;
-            lblLogin.Text = "LOGIN - CHATGUI";
-            lblLogin.TextAlign = ContentAlignment.MiddleCenter;
-            lblLogin.Click += lblLogin_Click;
-            // 
+            this.lblLogin.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.8F, System.Drawing.FontStyle.Bold);
+            this.lblLogin.ForeColor = System.Drawing.SystemColors.Control;
+            this.lblLogin.Location = new System.Drawing.Point(0, -1);
+            this.lblLogin.Name = "lblLogin";
+            this.lblLogin.Size = new System.Drawing.Size(800, 132);
+            this.lblLogin.TabIndex = 1;
+            this.lblLogin.Text = "LOGIN - CHATGUI";
+            this.lblLogin.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // FormLogin
-            // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
-            AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.Navy;
-            ClientSize = new Size(800, 562);
-            Controls.Add(lblLogin);
-            Controls.Add(panelLogin);
-            Margin = new Padding(3, 4, 3, 4);
-            Name = "FormLogin";
-            Text = "Login";
-            Load += FormLogin_Load;
-            panelLogin.ResumeLayout(false);
-            panelLogin.PerformLayout();
-            ResumeLayout(false);
-
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.Navy;
+            this.ClientSize = new System.Drawing.Size(800, 562);
+            this.Controls.Add(this.lblLogin);
+            this.Controls.Add(this.panelLogin);
+            this.Name = "FormLogin";
+            this.Text = "Login";
+            this.panelLogin.ResumeLayout(false);
+            this.panelLogin.PerformLayout();
+            this.ResumeLayout(false);
         }
-
         #endregion
 
         private System.Windows.Forms.Panel panelLogin;

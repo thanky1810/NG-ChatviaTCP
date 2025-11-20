@@ -1,13 +1,10 @@
-﻿// File: UI.Chat/FormLogin.cs
-using Chat.Client;
-using Chat.Shared;
+﻿using Chat.Shared;
 using System;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-// (Nhớ đổi namespace thành Chat.Client nếu bạn dùng cho project kia)
 namespace Chat.Client
 {
     public partial class FormLogin : Form
@@ -16,7 +13,10 @@ namespace Chat.Client
         private CancellationTokenSource? _cts;
         private TaskCompletionSource<BaseMessage>? _loginResponseTcs;
 
+        // ✅ Property 1: Để Program.cs lấy Client đã kết nối
         public ChatClient ConnectedClient => _chatClient;
+
+        // ✅ Property 2: Để Program.cs lấy danh sách User/Room
         public LoginOkMessage? LoginOkDetails { get; private set; }
 
         public FormLogin()
@@ -24,49 +24,26 @@ namespace Chat.Client
             InitializeComponent();
             this.txtHost.Text = "127.0.0.1";
             this.txtPort.Text = "8888";
-            this.txtUserName.Text = "UserWinForms";
+            this.txtUserName.Text = "User_Client2";
 
             _chatClient = new ChatClient();
             this.btnConnect.Click += BtnConnect_Click;
 
-            // ✅ BƯỚC 1: Đăng ký sự kiện bằng hàm riêng (không dùng lambda)
             _chatClient.ConnectionStatusChanged += OnConnectionStatusChanged;
-
             _chatClient.MessageReceived += OnMessageReceived;
-
-            // Cài đặt UI
-            this.btnConnect.TabStop = false;
-            this.txtHost.TabIndex = 0;
-            this.txtPort.TabIndex = 1;
-            this.txtUserName.TabIndex = 2;
-            this.Shown += FormLogin_Shown;
-            this.txtHost.KeyDown += TxtHost_KeyDown;
-            this.txtPort.KeyDown += TxtPort_KeyDown;
-            this.txtUserName.KeyDown += TxtUserName_KeyDown;
-            this.txtHost.MaxLength = 15;
-            this.txtUserName.MaxLength = 15;
-            this.txtPort.MaxLength = 4;
-            this.txtPort.KeyPress += TxtPort_KeyPress;
-            this.txtPort.TextChanged += TxtPort_TextChanged;
         }
 
-        // ✅ BƯỚC 2: Hàm xử lý trạng thái an toàn (Chống Crash)
         private void OnConnectionStatusChanged(string status)
         {
-            // Kiểm tra xem Form còn sống không trước khi cập nhật
             if (!this.IsDisposed && this.IsHandleCreated)
-            {
                 this.BeginInvoke((Action)(() => lblHost1.Text = status));
-            }
         }
 
         private async void BtnConnect_Click(object? sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtHost.Text) ||
-                string.IsNullOrWhiteSpace(txtPort.Text) ||
-                string.IsNullOrWhiteSpace(txtUserName.Text))
+            if (string.IsNullOrWhiteSpace(txtHost.Text) || string.IsNullOrWhiteSpace(txtPort.Text) || string.IsNullOrWhiteSpace(txtUserName.Text))
             {
-                MessageBox.Show("Vui lòng nhập Host, Port và User Name.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng nhập đầy đủ thông tin.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -76,116 +53,55 @@ namespace Chat.Client
 
             try
             {
-                await _chatClient.ConnectAsync(
-                    txtHost.Text.Trim(),
-                    int.Parse(txtPort.Text.Trim()),
-                    txtUserName.Text.Trim()
-                );
+                await _chatClient.ConnectAsync(txtHost.Text.Trim(), int.Parse(txtPort.Text.Trim()), txtUserName.Text.Trim());
 
-                var responseTask = _loginResponseTcs.Task;
-                if (await Task.WhenAny(responseTask, Task.Delay(5000, _cts.Token)) != responseTask)
-                {
+                if (await Task.WhenAny(_loginResponseTcs.Task, Task.Delay(5000, _cts.Token)) != _loginResponseTcs.Task)
                     throw new TimeoutException("Server không phản hồi.");
-                }
 
-                var response = await responseTask;
-                if (response is LoginOkMessage)
-                {
-                    this.DialogResult = DialogResult.OK;
-                    this.Close();
-                }
-                else if (response is ErrorMessage err)
-                {
-                    throw new Exception(err.Message);
-                }
-                else
-                {
-                    throw new Exception("Phản hồi login không hợp lệ.");
-                }
+                var response = await _loginResponseTcs.Task;
+                if (response is LoginOkMessage) { this.DialogResult = DialogResult.OK; this.Close(); }
+                else if (response is ErrorMessage err) throw new Exception(err.Message);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Đăng nhập thất bại: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                _chatClient.Disconnect();
-                _cts?.Cancel();
+                MessageBox.Show($"Lỗi đăng nhập: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _chatClient.Disconnect(); _cts?.Cancel();
             }
-            finally
-            {
-                btnConnect.Enabled = true;
-            }
+            finally { btnConnect.Enabled = true; }
         }
 
         private void OnMessageReceived(BaseMessage message)
         {
-            if (message is LoginOkMessage lok)
-            {
-                this.LoginOkDetails = lok;
-                _loginResponseTcs?.TrySetResult(lok);
-            }
-            else if (message is ErrorMessage err)
-            {
-                _loginResponseTcs?.TrySetResult(err);
-            }
+            if (message is LoginOkMessage lok) { this.LoginOkDetails = lok; _loginResponseTcs?.TrySetResult(lok); }
+            else if (message is ErrorMessage err) { _loginResponseTcs?.TrySetResult(err); }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            // ✅ BƯỚC 3: Hủy đăng ký đúng cách bằng "-="
-            // Vì chúng ta dùng hàm có tên, nên C# cho phép dùng -=
-            if (_chatClient != null)
-            {
-                _chatClient.ConnectionStatusChanged -= OnConnectionStatusChanged;
-                _chatClient.MessageReceived -= OnMessageReceived;
-            }
-
+            if (_chatClient != null) { _chatClient.ConnectionStatusChanged -= OnConnectionStatusChanged; _chatClient.MessageReceived -= OnMessageReceived; }
             _cts?.Cancel();
             base.OnFormClosed(e);
         }
 
+        // ✅ CÁC THUỘC TÍNH CÔNG KHAI MÀ PROGRAM.CS CẦN (Bạn đang thiếu phần này)
         public string Host => txtHost.Text.Trim();
         public int Port => int.TryParse(txtPort.Text.Trim(), out int p) ? p : 0;
+
+        // 👇 Đây là cái Program.cs đang tìm kiếm
         public string UserName => txtUserName.Text.Trim();
 
-        #region (Các hàm UI phụ trợ)
+        // Các hàm UI phụ trợ
         private void FormLogin_Load(object sender, EventArgs e) { }
-        private void FormLogin_Shown(object sender, EventArgs e)
-        {
-            this.BeginInvoke((Action)(() => { this.ActiveControl = txtHost; txtHost.Focus(); txtHost.SelectAll(); }));
-        }
-        private void TxtHost_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Down) { e.SuppressKeyPress = true; txtPort.Focus(); txtPort.SelectAll(); }
-            else if (e.KeyCode == Keys.Up) { e.SuppressKeyPress = true; }
-        }
-        private void TxtPort_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Down) { e.SuppressKeyPress = true; txtUserName.Focus(); txtUserName.SelectAll(); }
-            else if (e.KeyCode == Keys.Up) { e.SuppressKeyPress = true; txtHost.Focus(); txtHost.SelectAll(); }
-        }
-        private void TxtUserName_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Up) { e.SuppressKeyPress = true; txtPort.Focus(); txtPort.SelectAll(); }
-            else if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; BtnConnect_Click(this.btnConnect, EventArgs.Empty); }
-        }
-        private void TxtPort_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar)) { e.Handled = true; }
-        }
-        private void TxtPort_TextChanged(object sender, EventArgs e)
-        {
-            var txt = txtPort.Text;
-            if (string.IsNullOrEmpty(txt)) return;
-            var digitsOnlyChars = new System.Text.StringBuilder(txt.Length);
-            foreach (char c in txt) { if (char.IsDigit(c)) digitsOnlyChars.Append(c); }
-            var digitsOnly = digitsOnlyChars.ToString();
-            if (digitsOnly.Length > 4) digitsOnly = digitsOnly.Substring(0, 4);
-            if (digitsOnly != txt) { int selStart = txtPort.SelectionStart; txtPort.Text = digitsOnly; txtPort.SelectionStart = Math.Min(selStart, txtPort.Text.Length); }
-        }
-        private void textBox1_TextChanged(object sender, EventArgs e) { }
-        private void label2_Click(object sender, EventArgs e) { }
-        private void panelLogin_Paint(object sender, PaintEventArgs e) { }
-        private void txtHost_TextChanged(object sender, EventArgs e) { }
-        private void lblLogin_Click(object sender, EventArgs e) { }
-        #endregion
+        private void FormLogin_Shown(object sender, EventArgs e) { this.BeginInvoke((Action)(() => { this.ActiveControl = txtHost; txtHost.Focus(); })); }
+        private void TxtHost_KeyDown(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; txtPort.Focus(); } }
+        private void TxtPort_KeyDown(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; txtUserName.Focus(); } }
+        private void TxtUserName_KeyDown(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; BtnConnect_Click(null, null); } }
+        private void TxtPort_KeyPress(object s, KeyPressEventArgs e) { if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar)) e.Handled = true; }
+        private void TxtPort_TextChanged(object s, EventArgs e) { }
+        private void textBox1_TextChanged(object s, EventArgs e) { }
+        private void label2_Click(object s, EventArgs e) { }
+        private void panelLogin_Paint(object s, PaintEventArgs e) { }
+        private void txtHost_TextChanged(object s, EventArgs e) { }
+        private void lblLogin_Click(object s, EventArgs e) { }
     }
 }

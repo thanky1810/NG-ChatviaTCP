@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ClientChat; // (Hoặc namespace Chat.Client)
+namespace ClientChat;
 
 public class ChatClient
 {
@@ -38,40 +38,28 @@ public class ChatClient
 
             _ = Task.Run(() => ReceiveLoopAsync(_cts.Token));
             _ = Task.Run(() => ConsumerLoopAsync(_cts.Token));
-
-            // ✅ HEARTBEAT: Bắt đầu luồng gửi Ping tự động
             _ = Task.Run(() => PingLoopAsync(_cts.Token));
 
-            ConnectionStatusChanged?.Invoke("Đã kết nối, chờ xác thực...");
+            ConnectionStatusChanged?.Invoke("Đã kết nối.");
         }
         catch (Exception ex)
         {
-            ConnectionStatusChanged?.Invoke($"Kết nối thất bại: {ex.Message}");
+            ConnectionStatusChanged?.Invoke($"Lỗi: {ex.Message}");
             Disconnect();
             throw;
         }
     }
 
-    // ✅ HEARTBEAT: Luồng Ping (gửi mỗi 30s)
     private async Task PingLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested && _stream != null)
         {
             try
             {
-                // Chờ 30 giây
                 await Task.Delay(30000, token);
-
-                // Gửi Ping
                 await NetworkHelpers.SendMessageAsync(_stream, new PingMessage());
             }
-            catch (OperationCanceledException) { break; }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[PingLoop Error] {ex.Message}");
-                // Nếu Ping lỗi, có thể coi là mất kết nối
-                break;
-            }
+            catch { break; }
         }
     }
 
@@ -85,59 +73,31 @@ public class ChatClient
                 _inbox.Add(message, token);
             }
         }
-        catch (OperationCanceledException) { }
-        catch (IOException ex)
-        {
-            ConnectionStatusChanged?.Invoke($"Mất kết nối: {ex.Message}");
-            _inbox.CompleteAdding();
-        }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ReceiveLoop Error] {ex.Message}");
+            ConnectionStatusChanged?.Invoke($"Mất kết nối: {ex.Message}");
             _inbox.CompleteAdding();
         }
     }
 
     private void ConsumerLoopAsync(CancellationToken token)
     {
-        try
-        {
-            foreach (var message in _inbox.GetConsumingEnumerable(token))
-            {
-                MessageReceived?.Invoke(message);
-            }
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            ConnectionStatusChanged?.Invoke("Đã ngắt kết nối.");
-            Disconnect();
-        }
+        try { foreach (var msg in _inbox.GetConsumingEnumerable(token)) MessageReceived?.Invoke(msg); }
+        catch { }
+        finally { Disconnect(); }
     }
 
     public async Task SendMessageAsync(BaseMessage message)
     {
-        if (_stream == null || !(_client?.Connected ?? false))
-            throw new IOException("Chưa kết nối đến server.");
+        if (_stream == null) throw new IOException("Disconnected");
         await NetworkHelpers.SendMessageAsync(_stream, message);
     }
 
     public void Disconnect()
     {
         if (_cts == null) return;
-        try
-        {
-            _cts?.Cancel();
-            _stream?.Close();
-            _client?.Close();
-        }
+        try { _cts.Cancel(); _stream?.Close(); _client?.Close(); }
         catch { }
-        finally
-        {
-            _cts = null;
-            _stream = null;
-            _client = null;
-            Username = null;
-        }
+        finally { _cts = null; _stream = null; _client = null; Username = null; }
     }
 }

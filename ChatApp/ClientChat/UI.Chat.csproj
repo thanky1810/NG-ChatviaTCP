@@ -18,9 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="FormChat.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="FormChat.cs" />
     <Compile Update="FormChat.Designer.cs">
       <DependentUpon>FormChat.cs</DependentUpon>
     </Compile>
