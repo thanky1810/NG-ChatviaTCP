@@ -16,18 +16,35 @@ public partial class FormCreate : Form
 
         btnOk.Click += (s, e) =>
         {
+            // Kiểm tra tên phòng
             if (string.IsNullOrWhiteSpace(txtRoomName.Text))
             {
-                MessageBox.Show("Please enter room name.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Nhập tên phòng.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 this.DialogResult = DialogResult.None;
                 return;
             }
             if (txtRoomName.Text.Length > 25)
             {
-                MessageBox.Show("Room name too long.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Tên phòng quá dài (max 25).", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 this.DialogResult = DialogResult.None;
+                return;
+            }
+
+            // ✅ KIỂM TRA MẬT KHẨU (MAX 25 KÝ TỰ)
+            if (txtPassword.Text.Length > 25)
+            {
+                MessageBox.Show("Mật khẩu quá dài (tối đa 25 ký tự).", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                this.DialogResult = DialogResult.None; // Giữ form lại
                 return;
             }
         };
     }
+
+    // Hàm phụ trợ
+    private void FrmCreate_Load(object sender, EventArgs e) { }
+    private void btnOk_Click(object sender, EventArgs e) { }
+    private void lblRoom_Click(object sender, EventArgs e) { }
+    private void txtRoomName_TextChanged(object sender, EventArgs e) { }
+    private void btnCancel_Click(object sender, EventArgs e) { }
+    private void lblText_Click(object sender, EventArgs e) { }
 }

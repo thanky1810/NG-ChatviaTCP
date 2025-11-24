@@ -15,6 +15,7 @@ namespace Chat.Client
 
             btnOk.Click += (s, e) =>
             {
+                // Kiểm tra tên phòng
                 if (string.IsNullOrWhiteSpace(txtRoomName.Text))
                 {
                     MessageBox.Show("Nhập tên phòng.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -23,8 +24,16 @@ namespace Chat.Client
                 }
                 if (txtRoomName.Text.Length > 25)
                 {
-                    MessageBox.Show("Tên quá dài.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Tên phòng quá dài (max 25).", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     this.DialogResult = DialogResult.None;
+                    return;
+                }
+
+                // ✅ KIỂM TRA MẬT KHẨU (MAX 25 KÝ TỰ)
+                if (txtPassword.Text.Length > 25)
+                {
+                    MessageBox.Show("Mật khẩu quá dài (tối đa 25 ký tự).", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    this.DialogResult = DialogResult.None; // Giữ form lại
                     return;
                 }
             };

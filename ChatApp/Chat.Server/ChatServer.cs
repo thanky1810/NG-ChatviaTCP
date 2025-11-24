@@ -26,12 +26,13 @@ public class ConnectionState
 public class ChatServer
 {
     private readonly TcpListener _listener;
+
+    // Quản lý User, Room, Password
     private readonly ConcurrentDictionary<string, ConnectionState> _users = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ConnectionState>> _rooms = new(StringComparer.OrdinalIgnoreCase);
-
-    // ✅ THÊM: Biến lưu mật khẩu phòng
     private readonly ConcurrentDictionary<string, string?> _roomPasswords = new(StringComparer.OrdinalIgnoreCase);
 
+    // Events để cập nhật GUI Server
     public event Action<string>? LogMessageReceived;
     public event Action<List<string>>? UserListChanged;
     public event Action<List<string>>? RoomListChanged;
@@ -45,8 +46,17 @@ public class ChatServer
 
     public async Task StartAsync()
     {
-        _listener.Start();
-        LogMessageReceived?.Invoke($"[INFO] Server listening on {_listener.LocalEndpoint}");
+        try
+        {
+            _listener.Start();
+            LogMessageReceived?.Invoke($"[INFO] Server listening on {_listener.LocalEndpoint}");
+        }
+        catch (Exception ex)
+        {
+            LogMessageReceived?.Invoke($"[CRITICAL] Cannot start server: {ex.Message}");
+            return;
+        }
+
         RoomListChanged?.Invoke(new List<string>(_rooms.Keys.OrderBy(r => r)));
         UserListChanged?.Invoke(new List<string>(_users.Keys.OrderBy(u => u)));
 
@@ -59,7 +69,10 @@ public class ChatServer
                 var connection = new ConnectionState(client);
                 _ = HandleClientAsync(connection);
             }
-            catch (Exception ex) { LogMessageReceived?.Invoke($"[ERROR] Accept: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                LogMessageReceived?.Invoke($"[ERROR] Accept: {ex.Message}");
+            }
         }
     }
 
@@ -67,40 +80,54 @@ public class ChatServer
     {
         try
         {
+            // Heartbeat timeout: Nếu client không gửi gì trong 60s -> ngắt
             connection.Stream.ReadTimeout = 60000;
+
             while (true)
             {
                 BaseMessage message = await NetworkHelpers.ReadMessageAsync(connection.Stream);
                 switch (message)
                 {
-                    case PingMessage: await NetworkHelpers.SendMessageAsync(connection.Stream, new PongMessage()); break;
+                    // Xử lý Ping -> Pong
+                    case PingMessage:
+                        await NetworkHelpers.SendMessageAsync(connection.Stream, new PongMessage());
+                        break;
+
                     case LoginMessage m: await HandleLoginAsync(connection, m); break;
                     case ChatPublicMessage m: await BroadcastPublicMessageAsync(connection, m); break;
                     case ChatPrivateMessage m: await HandlePrivateMessageAsync(connection, m); break;
 
-                    // ✅ CẬP NHẬT CÁC HÀM XỬ LÝ PHÒNG
                     case CreateRoomMessage m: await HandleCreateRoomAsync(connection, m); break;
                     case JoinRoomMessage m: await HandleJoinRoomAsync(connection, m); break;
-
                     case LeaveRoomMessage m: await HandleLeaveRoomAsync(connection, m); break;
+
                     case ChatRoomMessage m: await BroadcastToRoomAsync(connection, m); break;
+
                     case LogoutMessage:
-                        LogMessageReceived?.Invoke($"[INFO] {connection.Username} logout.");
+                        LogMessageReceived?.Invoke($"[INFO] {connection.Username} requested logout.");
                         throw new IOException("Logout");
+
                     default:
                         LogMessageReceived?.Invoke($"[WARN] Unknown type from {connection.Username}");
                         break;
                 }
             }
         }
-        catch (IOException ex) { LogMessageReceived?.Invoke($"[INFO] Disconnected: {connection.Username} ({ex.Message})"); }
-        catch (Exception ex) { LogMessageReceived?.Invoke($"[ERROR] {connection.Username}: {ex.Message}"); }
+        catch (IOException ex)
+        {
+            LogMessageReceived?.Invoke($"[INFO] Disconnected: {connection.Username ?? "?"} ({ex.Message})");
+        }
+        catch (Exception ex)
+        {
+            LogMessageReceived?.Invoke($"[ERROR] {connection.Username}: {ex.Message}");
+        }
         finally
         {
             if (connection.Username != null)
             {
                 _users.TryRemove(connection.Username, out _);
                 foreach (var r in _rooms.Values) r.TryRemove(connection.Username, out _);
+
                 LogMessageReceived?.Invoke($"[INFO] User {connection.Username} cleaned up.");
                 await BroadcastUserListAsync();
                 await BroadcastToAllAsync(new SystemMessage { Text = $"{connection.Username} đã rời khỏi chat." }, connection);
@@ -109,32 +136,36 @@ public class ChatServer
         }
     }
 
-    // --- (Các hàm Login, ChatPublic, ChatPrivate giữ nguyên, tôi rút gọn) ---
     private async Task HandleLoginAsync(ConnectionState c, LoginMessage m)
     {
         if (_users.ContainsKey(m.Username))
         {
-            await NetworkHelpers.SendMessageAsync(c.Stream, new ErrorMessage { Code = "username_taken", Message = "Trùng tên" });
+            await NetworkHelpers.SendMessageAsync(c.Stream, new ErrorMessage { Code = "username_taken", Message = "Tên đã tồn tại." });
             throw new IOException("Username taken");
         }
         c.Username = m.Username; _users[m.Username] = c;
         await NetworkHelpers.SendMessageAsync(c.Stream, new LoginOkMessage { Users = _users.Keys.ToList(), Rooms = _rooms.Keys.ToList() });
         await BroadcastUserListAsync();
-        await BroadcastToAllAsync(new SystemMessage { Text = $"{m.Username} joined." }, c);
+        await BroadcastToAllAsync(new SystemMessage { Text = $"{m.Username} vừa tham gia." }, c);
     }
+
     private async Task BroadcastPublicMessageAsync(ConnectionState s, ChatPublicMessage m)
     {
+        // Log chat public lên Server Dashboard để theo dõi
+        LogMessageReceived?.Invoke($"[PUBLIC] {s.Username}: {m.Text}");
         await BroadcastToAllAsync(new ChatPublicMessage { From = s.Username, Text = m.Text, Timestamp = DateTime.Now.ToString("o") });
     }
+
     private async Task HandlePrivateMessageAsync(ConnectionState s, ChatPrivateMessage m)
     {
         var msg = new ChatPrivateMessage { From = s.Username, To = m.To, Text = m.Text, Timestamp = DateTime.Now.ToString("o") };
         if (_users.TryGetValue(m.To, out var t)) await NetworkHelpers.SendMessageAsync(t.Stream, msg);
-        else await NetworkHelpers.SendMessageAsync(s.Stream, new ErrorMessage { Message = "User offline" });
+        else await NetworkHelpers.SendMessageAsync(s.Stream, new ErrorMessage { Message = "Người dùng không online." });
+
         if (s.Username != m.To) await NetworkHelpers.SendMessageAsync(s.Stream, msg);
     }
 
-    // ✅ XỬ LÝ TẠO PHÒNG (Lưu mật khẩu)
+    // Tạo phòng với Mật khẩu
     private async Task HandleCreateRoomAsync(ConnectionState connection, CreateRoomMessage msg)
     {
         if (_rooms.TryAdd(msg.Room, new ConcurrentDictionary<string, ConnectionState>(StringComparer.OrdinalIgnoreCase)))
@@ -142,7 +173,7 @@ public class ChatServer
             _roomPasswords[msg.Room] = msg.Password; // Lưu mật khẩu
             _rooms[msg.Room][connection.Username] = connection;
 
-            LogMessageReceived?.Invoke($"[ROOM] {connection.Username} created '{msg.Room}' (Pass: {!string.IsNullOrEmpty(msg.Password)})");
+            LogMessageReceived?.Invoke($"[ROOM] {connection.Username} created '{msg.Room}' (HasPass: {!string.IsNullOrEmpty(msg.Password)})");
             await NetworkHelpers.SendMessageAsync(connection.Stream, new SystemMessage { Text = $"Đã tạo phòng '{msg.Room}'." });
             await BroadcastRoomListAsync();
         }
@@ -152,7 +183,7 @@ public class ChatServer
         }
     }
 
-    // ✅ XỬ LÝ VÀO PHÒNG (Kiểm tra mật khẩu)
+    // Vào phòng (Kiểm tra mật khẩu)
     private async Task HandleJoinRoomAsync(ConnectionState connection, JoinRoomMessage msg)
     {
         if (!_rooms.TryGetValue(msg.Room, out var members))
@@ -162,6 +193,7 @@ public class ChatServer
         }
 
         _roomPasswords.TryGetValue(msg.Room, out string? actualPass);
+        // Logic kiểm tra pass: Nếu phòng có pass mà user nhập sai
         if (!string.IsNullOrEmpty(actualPass) && actualPass != msg.Password)
         {
             await NetworkHelpers.SendMessageAsync(connection.Stream, new ErrorMessage { Code = "wrong_password", Message = "Sai mật khẩu phòng." });
@@ -183,27 +215,34 @@ public class ChatServer
             await BroadcastToRoomAsync(m.Room, new SystemMessage { Text = $"{c.Username} rời phòng." }, null);
         }
     }
+
     private async Task BroadcastToRoomAsync(ConnectionState s, ChatRoomMessage m)
     {
         if (_rooms.TryGetValue(m.Room, out var mem) && mem.ContainsKey(s.Username))
         {
+            // Log chat room lên Server Dashboard
+            LogMessageReceived?.Invoke($"[ROOM] {s.Username}@{m.Room}: {m.Text}");
             var msg = new ChatRoomMessage { From = s.Username, Room = m.Room, Text = m.Text, Timestamp = DateTime.Now.ToString("o") };
             foreach (var u in mem.Values) await NetworkHelpers.SendMessageAsync(u.Stream, msg);
         }
-        else await NetworkHelpers.SendMessageAsync(s.Stream, new ErrorMessage { Message = "Not in room" });
+        else await NetworkHelpers.SendMessageAsync(s.Stream, new ErrorMessage { Message = "Bạn không ở trong phòng này." });
     }
+
     private async Task BroadcastToAllAsync(BaseMessage m, ConnectionState? ex = null)
     {
         foreach (var u in _users.Values) if (u != ex) await NetworkHelpers.SendMessageAsync(u.Stream, m);
     }
+
     private async Task BroadcastToRoomAsync(string r, BaseMessage m, ConnectionState? ex = null)
     {
         if (_rooms.TryGetValue(r, out var mem)) foreach (var u in mem.Values) if (u != ex) await NetworkHelpers.SendMessageAsync(u.Stream, m);
     }
+
     private async Task BroadcastUserListAsync()
     {
         var u = _users.Keys.ToList(); UserListChanged?.Invoke(u); await BroadcastToAllAsync(new UserListMessage { Users = u });
     }
+
     private async Task BroadcastRoomListAsync()
     {
         var r = _rooms.Keys.ToList(); RoomListChanged?.Invoke(r); await BroadcastToAllAsync(new RoomListMessage { Rooms = r });
