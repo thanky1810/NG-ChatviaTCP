@@ -23,7 +23,7 @@ namespace ClientChat
             InitializeComponent();
             this.txtHost.Text = "127.0.0.1";
             this.txtPort.Text = "8888";
-            this.txtUserName.Text = "UserWinForms";
+            this.txtUserName.Text = "User_Client1";
 
             _chatClient = new ChatClient();
             this.btnConnect.Click += BtnConnect_Click;
