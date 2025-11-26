@@ -77,7 +77,7 @@
             lblHost1.TabIndex = 4;
             lblHost1.Text = "VD: 192.168.3.2";
             // 
-            // btnConnect
+            // btnConnect (Người 6)
             // 
             btnConnect.BackColor = Color.SpringGreen;
             btnConnect.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);

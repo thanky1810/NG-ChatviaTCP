@@ -1,4 +1,5 @@
 ﻿// File: UI.Chat/ChatClient.cs
+// (Người 5 - Nguyễn Thành Nam: Lõi Client - Networking & State)
 using Chat.Shared;
 using System;
 using System.Collections.Concurrent;
@@ -15,12 +16,17 @@ public class ChatClient
     private TcpClient? _client;
     private NetworkStream? _stream;
     private CancellationTokenSource? _cts;
+
+    // (Người 5) Hàng đợi tin nhắn (Thread-safe)
     private readonly BlockingCollection<BaseMessage> _inbox = new();
 
     public string? Username { get; private set; }
+
+    // (Người 5) Events báo trạng thái cho GUI
     public event Action<string>? ConnectionStatusChanged;
     public event Action<BaseMessage>? MessageReceived;
 
+    // (Người 5) Hàm kết nối
     public async Task ConnectAsync(string host, int port, string username)
     {
         if (_client?.Connected ?? false) return;
@@ -34,11 +40,13 @@ public class ChatClient
             _cts = new CancellationTokenSource();
             this.Username = username;
 
+            // (Người 5 & 1) Gửi tin Login
             await NetworkHelpers.SendMessageAsync(_stream, new LoginMessage { Username = username });
 
+            // (Người 5) Khởi chạy các luồng nền
             _ = Task.Run(() => ReceiveLoopAsync(_cts.Token));
             _ = Task.Run(() => ConsumerLoopAsync(_cts.Token));
-            _ = Task.Run(() => PingLoopAsync(_cts.Token));
+            _ = Task.Run(() => PingLoopAsync(_cts.Token)); // Luồng Ping
 
             ConnectionStatusChanged?.Invoke("Đã kết nối.");
         }
@@ -50,6 +58,7 @@ public class ChatClient
         }
     }
 
+    // (Người 5) Luồng gửi Ping định kỳ (Heartbeat)
     private async Task PingLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested && _stream != null)
@@ -63,6 +72,7 @@ public class ChatClient
         }
     }
 
+    // (Người 5) Luồng nhận tin nhắn từ Server
     private async Task ReceiveLoopAsync(CancellationToken token)
     {
         try
@@ -80,6 +90,7 @@ public class ChatClient
         }
     }
 
+    // (Người 5) Luồng xử lý tin nhắn và gọi Event
     private void ConsumerLoopAsync(CancellationToken token)
     {
         try { foreach (var msg in _inbox.GetConsumingEnumerable(token)) MessageReceived?.Invoke(msg); }
@@ -87,12 +98,14 @@ public class ChatClient
         finally { Disconnect(); }
     }
 
+    // (Người 5) Gửi tin nhắn
     public async Task SendMessageAsync(BaseMessage message)
     {
         if (_stream == null) throw new IOException("Disconnected");
         await NetworkHelpers.SendMessageAsync(_stream, message);
     }
 
+    // (Người 5) Ngắt kết nối
     public void Disconnect()
     {
         if (_cts == null) return;

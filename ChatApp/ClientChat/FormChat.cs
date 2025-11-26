@@ -11,6 +11,7 @@ namespace ClientChat;
 
 public partial class Chat_TCP_Client : Form
 {
+    // (Người 4: Nguyễn Thị Hoài Linh - Các thuộc tính nhận dữ liệu)
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public ChatClient Client { get; set; }
@@ -27,6 +28,8 @@ public partial class Chat_TCP_Client : Form
     private enum ChatContext { Public, Private, Room }
     private ChatContext _currentContext = ChatContext.Public;
     private string _currentContextTarget = "public";
+
+    // (Người 4: Nguyễn Thị Hoài Linh - Lưu trữ lịch sử Chat)
     private Dictionary<string, string> _chatHistories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     public Chat_TCP_Client()
@@ -40,10 +43,13 @@ public partial class Chat_TCP_Client : Form
         this.Text = $"Chat - {UserName}";
         _cts = new CancellationTokenSource();
         if (Client != null) Client.MessageReceived += ProcessMessage;
+
+        // (Người 4) Khởi tạo màn hình mặc định
         UpdateChatContext(ChatContext.Public, "public");
         if (InitialLoginOk != null) { ProcessUserList(InitialLoginOk.Users); ProcessRoomList(InitialLoginOk.Rooms); }
     }
 
+    // (Người 4: Cập nhật UI Danh sách)
     private void ProcessUserList(List<string> users)
     {
         lboxUsers.Items.Clear();
@@ -55,6 +61,7 @@ public partial class Chat_TCP_Client : Form
         foreach (var room in rooms) lboxRooms.Items.Add(room);
     }
 
+    // (Người 4 & 5: Xử lý tin nhắn nhận được)
     private void ProcessMessage(BaseMessage message)
     {
         if (this.InvokeRequired) { this.BeginInvoke((Action)(() => ProcessMessage(message))); return; }
@@ -90,6 +97,7 @@ public partial class Chat_TCP_Client : Form
         if (messageContext == _currentContextTarget) AppendChatMessage(ts, sender, text, false);
         else if (!string.IsNullOrEmpty(messageContext))
         {
+            // (Người 4: Lưu lịch sử ngầm)
             string oldRtf = _chatHistories.ContainsKey(messageContext) ? _chatHistories[messageContext] : "";
             using (var tempRtb = new RichTextBox())
             {
@@ -103,6 +111,7 @@ public partial class Chat_TCP_Client : Form
         }
     }
 
+    // (Người 6: Cao Xuân Quyết - Tích hợp nút Ping)
     private async void btnPing_Click(object sender, EventArgs e)
     {
         if (Client == null) return;
@@ -110,6 +119,7 @@ public partial class Chat_TCP_Client : Form
         try { await Client.SendMessageAsync(new PingMessage()); } catch { }
     }
 
+    // (Người 6: Cao Xuân Quyết - Tích hợp nút Gửi)
     private async void btnSend_Click(object sender, EventArgs e)
     {
         string text = txtMessInput.Text;
@@ -123,6 +133,7 @@ public partial class Chat_TCP_Client : Form
             case ChatContext.Room: message = new ChatRoomMessage { Room = _currentContextTarget, Text = text }; break;
             default: return;
         }
+        // (Người 4: Hiển thị tin của mình ngay)
         AppendChatMessage(DateTime.UtcNow.ToString("o"), this.UserName, text, true);
         try { await Client.SendMessageAsync(message); txtMessInput.Clear(); } catch (Exception ex) { MessageBox.Show($"Gửi thất bại: {ex.Message}"); }
     }
@@ -141,6 +152,7 @@ public partial class Chat_TCP_Client : Form
         }
     }
 
+    // (Người 6: Cao Xuân Quyết - Tích hợp nút Tạo phòng)
     private async void btnJoin_Click(object sender, EventArgs e)
     {
         if (lboxRooms.SelectedItem == null) { MessageBox.Show("Chọn phòng!"); return; }
@@ -156,12 +168,7 @@ public partial class Chat_TCP_Client : Form
         }
     }
 
-    private void lboxUsers_SelectedIndexChanged(object sender, EventArgs e)
-    {
-        if (lboxUsers.SelectedItem == null) return;
-        UpdateChatContext(ChatContext.Private, lboxUsers.SelectedItem.ToString());
-    }
-
+    // (Người 6: Cao Xuân Quyết - Tích hợp nút Rời phòng)
     private async void btnLeave_Click(object sender, EventArgs e)
     {
         if (_currentContext != ChatContext.Room) return;
@@ -169,6 +176,7 @@ public partial class Chat_TCP_Client : Form
         UpdateChatContext(ChatContext.Public, "public");
     }
 
+    // (Người 6: Cao Xuân Quyết - Tích hợp nút Logout)
     private async void btnLogOut_Click(object sender, EventArgs e)
     {
         var confirm = MessageBox.Show("Đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo);
@@ -176,7 +184,15 @@ public partial class Chat_TCP_Client : Form
         try { await Client.SendMessageAsync(new LogoutMessage()); } catch { }
         Client.Disconnect(); _cts?.Cancel(); this.Close();
     }
-
+    
+    // (Người 4: Nguyễn Thị Hoài Linh - Xử lý Double-click User)
+    private void lboxUsers_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (lboxUsers.SelectedItem == null) return;
+        UpdateChatContext(ChatContext.Private, lboxUsers.SelectedItem.ToString());
+    }
+    
+    // (Người 4: Nguyễn Thị Hoài Linh - Hàm chuyển đổi Context)
     private void UpdateChatContext(ChatContext context, string target)
     {
         if (!string.IsNullOrEmpty(_currentContextTarget)) _chatHistories[_currentContextTarget] = rtbMessList.Rtf;
@@ -192,6 +208,7 @@ public partial class Chat_TCP_Client : Form
         rtbMessList.ScrollToCaret();
     }
 
+    // (Người 4: Nguyễn Thị Hoài Linh - Hàm thêm tin nhắn vào UI)
     private void AppendChatMessage(string timeStr, string sender, string message, bool isSelf, Color? senderColor = null)
     {
         string time = DateTime.TryParse(timeStr, out var dt) ? dt.ToLocalTime().ToString("HH:mm:ss") : DateTime.Now.ToString("HH:mm:ss");
@@ -202,8 +219,15 @@ public partial class Chat_TCP_Client : Form
         if (!string.IsNullOrEmpty(_currentContextTarget)) _chatHistories[_currentContextTarget] = rtbMessList.Rtf;
     }
 
-    // Các hàm UI trống (giữ nguyên để tránh lỗi Designer)
-    private void Chat_TCP_Client_FormClosing(object s, FormClosingEventArgs e) { if (Client?.Username != null) { if (MessageBox.Show("Thoát?", "Xác nhận", MessageBoxButtons.YesNo) == DialogResult.No) e.Cancel = true; else { Client.Disconnect(); _cts?.Cancel(); } } }
+    // (Người 6: Xử lý đóng form)
+    private void Chat_TCP_Client_FormClosing(object s, FormClosingEventArgs e) { 
+        if (Client?.Username != null) { 
+            if (MessageBox.Show("Thoát?", "Xác nhận", MessageBoxButtons.YesNo) == DialogResult.No) e.Cancel = true; 
+            else { Client.Disconnect(); _cts?.Cancel(); } 
+        } 
+    }
+    
+    // Các hàm UI trống
     private void lboxRooms_SelectedIndexChanged(object s, EventArgs e) { }
     private void rtbMessList_TextChanged(object s, EventArgs e) { }
     private void panel1_Paint(object s, PaintEventArgs e) { }

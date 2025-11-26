@@ -1,4 +1,7 @@
-﻿using Chat.Shared;
+﻿// File: Chat.Client/FormChat.cs
+// (Người 4 - Nguyễn Thị Hoài Linh: Logic UI Màn hình Chat)
+// (Người 6 - Cao Xuân Quyết: Tích hợp Gửi tin, Rooms, Logout)
+using Chat.Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,10 +13,12 @@ namespace Chat.Client
 {
     public partial class Chat_TCP_Client : Form
     {
+        // (Người 5: Nhận Lõi Client từ Program.cs)
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ChatClient Client { get; set; }
 
+        // (Người 6: Nhận thông tin từ FormLogin)
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string UserName { get; set; }
@@ -26,6 +31,8 @@ namespace Chat.Client
         private enum ChatContext { Public, Private, Room }
         private ChatContext _currentContext = ChatContext.Public;
         private string _currentContextTarget = "public";
+
+        // (Người 4: Bộ nhớ đệm lưu lịch sử chat)
         private Dictionary<string, string> _chatHistories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public Chat_TCP_Client()
@@ -38,11 +45,18 @@ namespace Chat.Client
         {
             this.Text = $"Chat - {UserName}";
             _cts = new CancellationTokenSource();
+
+            // (Người 5: Đăng ký nhận tin nhắn)
             if (Client != null) Client.MessageReceived += ProcessMessage;
+
+            // (Người 4: Khởi tạo màn hình mặc định)
             UpdateChatContext(ChatContext.Public, "public");
+
+            // (Người 6: Load danh sách User/Room ban đầu)
             if (InitialLoginOk != null) { ProcessUserList(InitialLoginOk.Users); ProcessRoomList(InitialLoginOk.Rooms); }
         }
 
+        // (Người 4: Cập nhật UI danh sách)
         private void ProcessUserList(List<string> users)
         {
             lboxUsers.Items.Clear();
@@ -54,6 +68,7 @@ namespace Chat.Client
             foreach (var room in rooms) lboxRooms.Items.Add(room);
         }
 
+        // (Người 4 & 5: Xử lý tin nhắn nhận được từ Server)
         private void ProcessMessage(BaseMessage message)
         {
             if (this.InvokeRequired) { this.BeginInvoke((Action)(() => ProcessMessage(message))); return; }
@@ -62,7 +77,9 @@ namespace Chat.Client
 
             switch (message)
             {
+                // (Người 5: Xử lý Pong Heartbeat)
                 case PongMessage: AppendChatMessage(DateTime.Now.ToString("HH:mm:ss"), "Server", "PONG! (OK)", false, Color.Green); return;
+
                 case ChatPublicMessage c: if (c.From == this.UserName) return; messageContext = "public"; sender = c.From; text = c.Text; ts = c.Timestamp; break;
                 case ChatPrivateMessage d: if (d.From == this.UserName) return; messageContext = d.From; sender = d.From; text = d.Text; ts = d.Timestamp; break;
                 case ChatRoomMessage r: if (r.From == this.UserName) return; messageContext = r.Room; sender = r.From; text = r.Text; ts = r.Timestamp; break;
@@ -72,6 +89,7 @@ namespace Chat.Client
                 case RoomListMessage rl: ProcessRoomList(rl.Rooms); return;
             }
 
+            // (Người 4: Logic hiển thị hoặc lưu ngầm)
             if (messageContext == _currentContextTarget) AppendChatMessage(ts, sender, text, false);
             else if (!string.IsNullOrEmpty(messageContext))
             {
@@ -88,13 +106,7 @@ namespace Chat.Client
             }
         }
 
-        private async void btnPing_Click(object sender, EventArgs e)
-        {
-            if (Client == null) return;
-            AppendChatMessage(DateTime.Now.ToString("HH:mm:ss"), "System", "Ping...", false, Color.Gray);
-            try { await Client.SendMessageAsync(new PingMessage()); } catch { }
-        }
-
+        // (Người 6: Tích hợp nút Gửi tin)
         private async void btnSend_Click(object sender, EventArgs e)
         {
             string text = txtMessInput.Text;
@@ -107,10 +119,12 @@ namespace Chat.Client
                 case ChatContext.Room: message = new ChatRoomMessage { Room = _currentContextTarget, Text = text }; break;
                 default: return;
             }
+            // (Người 4: Hiển thị tin của mình ngay lập tức)
             AppendChatMessage(DateTime.UtcNow.ToString("o"), this.UserName, text, true);
             try { await Client.SendMessageAsync(message); txtMessInput.Clear(); } catch (Exception ex) { MessageBox.Show($"Lỗi: {ex.Message}"); }
         }
 
+        // (Người 6: Tích hợp nút Tạo phòng)
         private async void btnCreate_Click(object sender, EventArgs e)
         {
             using (var dlg = new FormCreate())
@@ -118,17 +132,19 @@ namespace Chat.Client
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
                     var roomName = dlg.RoomName;
-                    var pass = dlg.RoomPassword;
+                    var pass = dlg.RoomPassword; // (Người 6: Lấy mật khẩu)
                     if (string.IsNullOrEmpty(roomName)) return;
                     await Client.SendMessageAsync(new CreateRoomMessage { Room = roomName, Password = pass });
                 }
             }
         }
 
+        // (Người 6: Tích hợp nút Vào phòng)
         private async void btnJoin_Click(object sender, EventArgs e)
         {
             if (lboxRooms.SelectedItem == null) { MessageBox.Show("Chọn phòng!"); return; }
             var roomName = lboxRooms.SelectedItem.ToString();
+            // (Người 6: Hiện form nhập pass)
             using (var dlg = new FormJoinPassword(roomName))
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK)
@@ -139,6 +155,7 @@ namespace Chat.Client
             }
         }
 
+        // (Người 6: Tích hợp nút Rời phòng)
         private async void btnLeave_Click(object sender, EventArgs e)
         {
             if (_currentContext != ChatContext.Room) return;
@@ -146,6 +163,15 @@ namespace Chat.Client
             UpdateChatContext(ChatContext.Public, "public");
         }
 
+        // (Người 6: Tích hợp nút Ping Heartbeat)
+        private async void btnPing_Click(object sender, EventArgs e)
+        {
+            if (Client == null) return;
+            AppendChatMessage(DateTime.Now.ToString("HH:mm:ss"), "System", "Ping...", false, Color.Gray);
+            try { await Client.SendMessageAsync(new PingMessage()); } catch { }
+        }
+
+        // (Người 6: Tích hợp nút Logout)
         private async void btnLogOut_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Logout?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
@@ -155,12 +181,14 @@ namespace Chat.Client
             }
         }
 
+        // (Người 4: Xử lý chuyển tab chat)
         private void lboxUsers_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (lboxUsers.SelectedItem == null) return;
             UpdateChatContext(ChatContext.Private, lboxUsers.SelectedItem.ToString());
         }
 
+        // (Người 4: Hàm quản lý chuyển đổi Context và Lịch sử chat)
         private void UpdateChatContext(ChatContext context, string target)
         {
             if (!string.IsNullOrEmpty(_currentContextTarget)) _chatHistories[_currentContextTarget] = rtbMessList.Rtf;
@@ -175,6 +203,7 @@ namespace Chat.Client
             rtbMessList.ScrollToCaret();
         }
 
+        // (Người 4: Hàm helper thêm tin nhắn vào RichTextBox)
         private void AppendChatMessage(string timeStr, string sender, string message, bool isSelf, Color? senderColor = null)
         {
             string time = DateTime.TryParse(timeStr, out var dt) ? dt.ToLocalTime().ToString("HH:mm:ss") : DateTime.Now.ToString("HH:mm:ss");
@@ -185,6 +214,7 @@ namespace Chat.Client
             if (!string.IsNullOrEmpty(_currentContextTarget)) _chatHistories[_currentContextTarget] = rtbMessList.Rtf;
         }
 
+        // (Người 6: Xử lý sự kiện đóng form)
         private void Chat_TCP_Client_FormClosing(object s, FormClosingEventArgs e)
         {
             if (Client?.Username != null)
@@ -193,6 +223,8 @@ namespace Chat.Client
                 else { Client.Disconnect(); _cts?.Cancel(); }
             }
         }
+
+        // (Người 6: Các hàm UI trống để tránh lỗi Designer)
         private void rtbMessList_TextChanged(object s, EventArgs e) { }
         private void panel1_Paint(object s, PaintEventArgs e) { }
         private void Connect_Click(object s, EventArgs e) { }

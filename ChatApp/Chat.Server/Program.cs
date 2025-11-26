@@ -1,4 +1,5 @@
 ﻿// File: Chat.Server/Program.cs
+// (Người 1 - Vũ Trí Dũng: Entry Point)
 using System;
 using System.Windows.Forms;
 
@@ -12,7 +13,7 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        // Khởi động Giao diện Quản lý (Dashboard) của Server
+        // (Người 1: Chạy Server Form)
         Application.Run(new ServerForm());
     }
 }
