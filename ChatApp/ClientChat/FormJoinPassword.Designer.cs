@@ -1,5 +1,6 @@
 ﻿// File: UI.Chat/FormJoinPassword.Designer.cs
-namespace ClientChat // (Hoặc Chat.Client)
+// (Người 6 - Cao Xuân Quyết: Thiết kế Giao diện Form Nhập mật khẩu)
+namespace ClientChat
 {
     partial class FormJoinPassword
     {

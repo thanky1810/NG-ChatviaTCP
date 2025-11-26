@@ -1,17 +1,19 @@
 ﻿// File: UI.Chat/FormJoinPassword.cs
+// (Người 6 - Cao Xuân Quyết: Logic Form Nhập mật khẩu khi vào phòng)
 using System;
 using System.Windows.Forms;
 
-namespace ClientChat // (Hoặc Chat.Client)
+namespace ClientChat
 {
     public partial class FormJoinPassword : Form
     {
-        // Property để lấy mật khẩu ra ngoài
+        // (Người 6) Property để lấy mật khẩu ra ngoài cho FormChat sử dụng
         public string Password => txtPass.Text.Trim();
 
         public FormJoinPassword(string roomName)
         {
             InitializeComponent();
+            // (Người 6) Hiển thị tên phòng trên tiêu đề
             this.Text = $"Vào phòng: {roomName}";
         }
     }

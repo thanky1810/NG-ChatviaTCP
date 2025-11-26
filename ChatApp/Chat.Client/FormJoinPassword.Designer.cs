@@ -1,5 +1,6 @@
 ﻿// File: UI.Chat/FormJoinPassword.Designer.cs
-namespace Chat.Client // (Hoặc Chat.Client)
+// (Người 6 - Cao Xuân Quyết: Thiết kế Giao diện Form Nhập mật khẩu)
+namespace Chat.Client 
 {
     partial class FormJoinPassword
     {
@@ -50,7 +51,7 @@ namespace Chat.Client // (Hoặc Chat.Client)
             this.txtPass.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtPass.Location = new System.Drawing.Point(20, 50);
             this.txtPass.Name = "txtPass";
-            this.txtPass.PasswordChar = '*';
+            this.txtPass.PasswordChar = '*'; // (Người 6: Ẩn ký tự mật khẩu)
             this.txtPass.Size = new System.Drawing.Size(340, 26);
             this.txtPass.TabIndex = 1;
             // 

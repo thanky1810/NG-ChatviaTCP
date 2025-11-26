@@ -1,4 +1,5 @@
 ﻿// File: Chat.Server/ServerForm.cs
+// (Người 1 - Vũ Trí Dũng: Logic Giao diện Server Dashboard)
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -15,45 +16,38 @@ public partial class ServerForm : Form
     {
         InitializeComponent();
 
-        // 1. Khởi tạo lõi Server (nhưng chưa chạy)
+        // (Người 1: Khởi tạo lõi Server)
         _server = new ChatServer("0.0.0.0", 8888);
 
-        // 2. Đăng ký nhận sự kiện từ lõi Server
+        // (Người 1: Đăng ký nhận sự kiện từ lõi)
         _server.LogMessageReceived += OnLogMessageReceived;
         _server.UserListChanged += OnUserListChanged;
         _server.RoomListChanged += OnRoomListChanged;
 
-        // (Người 1) Đảm bảo Server tắt hẳn khi đóng Form
+        // (Người 1: Đảm bảo tắt process khi đóng form)
         this.FormClosing += ServerForm_FormClosing;
     }
 
     private void ServerForm_FormClosing(object sender, FormClosingEventArgs e)
     {
-        // Tắt toàn bộ ứng dụng khi đóng Form
-        // (Ngăn lỗi "file bị khóa" khi Rebuild)
         Environment.Exit(0);
     }
 
     private void ServerForm_Load(object sender, EventArgs e)
     {
-        // 3. Khởi chạy Server trên một luồng nền
-        //    (Để nó không làm "đóng băng" Giao diện)
+        // (Người 1: Chạy Server trên luồng nền)
         Task.Run(() => _server.StartAsync());
     }
 
-    // --- Các hàm cập nhật UI (Thread-safe) ---
-
-    // (Người 1) Hiển thị Log
+    // (Người 1: Cập nhật Log UI)
     private void OnLogMessageReceived(string message)
     {
-        // Phải dùng BeginInvoke để cập nhật UI từ luồng mạng
         if (rtbLogs.InvokeRequired)
         {
             rtbLogs.BeginInvoke((Action)(() => OnLogMessageReceived(message)));
             return;
         }
 
-        // Tô màu cho log
         Color logColor = Color.Black;
         if (message.StartsWith("[ERROR]")) logColor = Color.Red;
         else if (message.StartsWith("[WARN]")) logColor = Color.Goldenrod;
@@ -65,7 +59,7 @@ public partial class ServerForm : Form
         rtbLogs.ScrollToCaret();
     }
 
-    // (Người 2) Hiển thị danh sách User
+    // (Người 2: Cập nhật danh sách User UI)
     private void OnUserListChanged(List<string> users)
     {
         if (lboxUsers.InvokeRequired)
@@ -82,7 +76,7 @@ public partial class ServerForm : Form
         lblUserCount.Text = $"Users: {users.Count}";
     }
 
-    // (Người 3) Hiển thị danh sách Phòng
+    // (Người 3: Cập nhật danh sách Room UI)
     private void OnRoomListChanged(List<string> rooms)
     {
         if (lboxRooms.InvokeRequired)

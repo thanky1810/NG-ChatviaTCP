@@ -1,9 +1,11 @@
 ﻿// File: Chat.Shared/Protocol.cs
+// (Người 1 - Vũ Trí Dũng: Định nghĩa Giao thức và các DTO)
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Chat.Shared;
 
+// (Người 1) Định nghĩa các loại tin nhắn để JSON Serializer tự động nhận diện
 [JsonDerivedType(typeof(LoginMessage), typeDiscriminator: "login")]
 [JsonDerivedType(typeof(LoginOkMessage), typeDiscriminator: "login_ok")]
 [JsonDerivedType(typeof(ErrorMessage), typeDiscriminator: "error")]
@@ -20,9 +22,11 @@ namespace Chat.Shared;
 [JsonDerivedType(typeof(PingMessage), typeDiscriminator: "ping")]
 [JsonDerivedType(typeof(PongMessage), typeDiscriminator: "pong")]
 
+// (Người 1) Lớp cơ sở
 public class BaseMessage { }
 
-// --- Nhóm Xác thực / Kết nối ---
+// --- Nhóm Xác thực / Kết nối (Người 1) ---
+
 public class LoginMessage : BaseMessage
 {
     [JsonPropertyName("username")]
@@ -47,7 +51,8 @@ public class ErrorMessage : BaseMessage
 
 public class LogoutMessage : BaseMessage { }
 
-// --- Nhóm Chat ---
+// --- Nhóm Chat (Người 1) ---
+
 public class ChatPublicMessage : BaseMessage
 {
     [JsonPropertyName("from")]
@@ -82,13 +87,13 @@ public class ChatRoomMessage : BaseMessage
     public string Timestamp { get; set; }
 }
 
-// --- Nhóm Phòng (Rooms) ---
+// --- Nhóm Phòng (Rooms) (Người 1) ---
+
 public class CreateRoomMessage : BaseMessage
 {
     [JsonPropertyName("room")]
     public string Room { get; set; }
 
-    // ✅ THÊM
     [JsonPropertyName("password")]
     public string? Password { get; set; }
 }
@@ -98,7 +103,6 @@ public class JoinRoomMessage : BaseMessage
     [JsonPropertyName("room")]
     public string Room { get; set; }
 
-    // ✅ THÊM
     [JsonPropertyName("password")]
     public string? Password { get; set; }
 }
@@ -109,7 +113,8 @@ public class LeaveRoomMessage : BaseMessage
     public string Room { get; set; }
 }
 
-// --- Nhóm Danh sách & Hệ thống ---
+// --- Nhóm Danh sách & Hệ thống (Người 1) ---
+
 public class UserListMessage : BaseMessage
 {
     [JsonPropertyName("users")]
@@ -128,5 +133,6 @@ public class SystemMessage : BaseMessage
     public string Text { get; set; }
 }
 
+// (Người 1) Heartbeat
 public class PingMessage : BaseMessage { }
 public class PongMessage : BaseMessage { }

@@ -1,4 +1,6 @@
-﻿namespace Chat.Client
+﻿// File: UI.Chat/FormChat.Designer.cs
+// (Người 4 - Nguyễn Thị Hoài Linh: Thiết kế Giao diện Màn hình Chat Chính)
+namespace Chat.Client
 {
     partial class Chat_TCP_Client
     {
@@ -26,7 +28,7 @@
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.lblNameRoom = new System.Windows.Forms.Label();
             this.btnLeave = new System.Windows.Forms.Button();
-            this.btnPing = new System.Windows.Forms.Button(); // ✅
+            this.btnPing = new System.Windows.Forms.Button(); // (Người 4: Thêm nút Ping)
             this.btnSend = new System.Windows.Forms.Button();
             this.txtMessInput = new System.Windows.Forms.TextBox();
             this.btnLogOut = new System.Windows.Forms.Button();

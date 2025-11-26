@@ -1,6 +1,7 @@
-﻿// File: UI.Chat/Program.cs
+﻿// File: Chat.Client/Program.cs
+// (Người 6 - Cao Xuân Quyết: Tích hợp luồng chạy của ứng dụng)
 using Chat.Client;
-using Chat.Shared; // ✅ Thêm
+using Chat.Shared;
 using System;
 using System.Windows.Forms;
 
@@ -14,27 +15,28 @@ namespace Chat.Client
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // ✅ SỬA LỖI LOGOUT: Thêm vòng lặp
+            // (Người 6: Cao Xuân Quyết - Vòng lặp duy trì ứng dụng để hỗ trợ tính năng Đăng xuất quay lại Đăng nhập)
             while (true)
             {
+                // (Người 6: Hiển thị màn hình Đăng nhập)
                 using (var login = new FormLogin())
                 {
-                    // Hiển thị modal; chỉ tiếp tục khi người dùng nhấn CONNECT
+                    // (Người 6: Kiểm tra kết quả đăng nhập, nếu đóng form thì thoát chương trình)
                     if (login.ShowDialog() != DialogResult.OK)
-                        return; // Nếu người dùng đóng FormLogin, thoát hẳn
+                        return;
 
-                    // ✅ SỬA LỖI DANH SÁCH USER: Truyền LoginOkDetails
+                    // (Người 6: Khởi tạo màn hình Chat và truyền dữ liệu kết nối từ FormLogin sang)
                     var chat = new Chat_TCP_Client
                     {
                         UserName = login.UserName,
                         Client = login.ConnectedClient,
-                        InitialLoginOk = login.LoginOkDetails // Lấy danh sách ban đầu
+                        InitialLoginOk = login.LoginOkDetails // (Người 6: Truyền danh sách User/Room ban đầu)
                     };
 
-                    Application.Run(chat); // Chạy FormChat
+                    // (Người 6: Chạy màn hình Chat chính)
+                    Application.Run(chat);
 
-                    // Sau khi FormChat (chat) bị đóng (do Logout),
-                    // vòng lặp 'while' sẽ chạy lại và hiển thị FormLogin mới
+                    // (Người 6: Khi FormChat đóng (do Logout), vòng lặp sẽ quay lại mở FormLogin mới)
                 }
             }
         }
